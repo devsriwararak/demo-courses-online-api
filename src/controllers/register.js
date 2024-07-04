@@ -2,7 +2,7 @@ import pool from "../db/index.js";
 import bcrypt from "bcrypt";
 
 export const registerUser = async (req, res) => {
-  const { username, password, status } = req.body;
+  const { username, password, name,  status } = req.body;
   const db = await pool.connect();
   try {
     if (!username || !password || typeof status === "undefined") {
@@ -23,8 +23,8 @@ export const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // เพิ่ม ฐานข้อมูล
-    const sql = `INSERT INTO users (username , password, status) VALUES ($1,$2,$3) RETURNING *`;
-    await db.query(sql, [username, hashedPassword, status]);
+    const sql = `INSERT INTO users (username , password, name, status) VALUES ($1,$2,$3,$4) RETURNING *`;
+    await db.query(sql, [username, hashedPassword, name, status]);
     return res.status(200).json({ message: "สมัครสมาชิกสำเร็จ" });
     
   } catch (error) {
