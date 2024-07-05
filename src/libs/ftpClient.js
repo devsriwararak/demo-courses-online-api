@@ -13,7 +13,8 @@ const __dirname = path.dirname(__filename);
 const uploadToFTP = async (fileBuffer, originalName, directory) => {
   const client = new ftp.Client();
   client.ftp.verbose = true; // เปิดการแสดงข้อความเพิ่มเติมสำหรับการดีบัก
-
+  client.ftp.timeout = 60000; // เพิ่มเวลาหมดเวลาเป็น 60 วินาที
+  
   try {
     await client.access({
       host: process.env.FTP_HOST,

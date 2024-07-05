@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  node-api:
+    build: .
+    environment:
+      DB_USER: root
+      DB_HOST: 203.146.252.205
+      DB_DATABASE: courses-online
+      DB_PASSWORD: 5839011223
+      DB_PORT: 5432
+      FTP_HOST: 203.146.252.205
+      FTP_USER: courses
+      FTP_PASSWORD: 5839011223
+      PORT: 5000
+    ports:
+      - "5000:5000"
