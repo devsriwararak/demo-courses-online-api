@@ -42,7 +42,7 @@ export const addNewProduct = async (req, res) => {
 export const getAllProducts = async(req,res)=> {
     const {search} = req.body
     try {
-        
+        console.log(search);
     } catch (error) {
         console.error(error);
         return res.status(500).json(error.message)
