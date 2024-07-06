@@ -14,7 +14,7 @@ app.use(cors())
 app.use(express.json({ limit: '50mb' })); // เพิ่ม limit สำหรับ payload
 
 app.get('/', (req,res)=> {
-    res.send('v12222')
+    res.send('v1')
 })
 
 

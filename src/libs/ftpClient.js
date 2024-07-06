@@ -42,3 +42,4 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
 };
 
 export default uploadToFTP;
+

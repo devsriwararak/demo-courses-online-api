@@ -5,6 +5,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 export const addNewProduct = async (req, res) => {
   const { title, dec, price, price_sale, image, category_id } = req.body;
+  // console.log(req.body);
   const videoFile = req.file;
   const db = await pool.connect();
   try {
@@ -30,7 +31,7 @@ export const addNewProduct = async (req, res) => {
       [title, dec, price, price_sale, imageName, videoName, category_id]
     );
 
-    return res.json(result.rows[0]);
+   return res.status(200).json({message : 'บันทึกสำเร็จ'})
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message);
@@ -41,11 +42,17 @@ export const addNewProduct = async (req, res) => {
 
 export const getAllProducts = async(req,res)=> {
     const {search} = req.body
+    const db = await pool.connect()
     try {
         console.log(search);
+        const sql = `SELECT * FROM products`
+        const result = await db.query(sql)
+        return res.status(200).json(result.rows)
     } catch (error) {
         console.error(error);
         return res.status(500).json(error.message)
+    }finally {
+      db.release()
     }
 }
 
