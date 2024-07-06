@@ -1,3 +1,4 @@
+
 import ftp from 'basic-ftp';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -41,5 +42,33 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
   }
 };
 
+
+
 export default uploadToFTP;
+
+
+export const deleteImageFtp = async(imagePath)=> {
+  const client = new ftp.Client();
+  client.ftp.verbose = true;
+  client.ftp.timeout = 60000;
+  try {
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASSWORD,
+      secure: false,
+    });
+
+    await client.remove(imagePath);
+    console.log(`Deleted ${imagePath} successfully`);
+
+  } catch (error) {
+    console.error(`Error deleting file from FTP: ${error.message}`);
+    // throw new Error(`ลบรูปภาพล้มเหลว: ${error.message}`);
+  } finally {
+    client.close();
+  }
+}
+
+
 

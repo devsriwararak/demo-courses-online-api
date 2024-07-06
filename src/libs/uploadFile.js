@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import uploadToFTP from "./ftpClient.js";
+import { loginUser } from "../controllers/login.js";
 
 // ฟังก์ชันสำหรับตรวจสอบและแปลง base64 ให้ถูกต้อง
 const getBase64Data = (base64String) => {
@@ -16,7 +17,7 @@ const handleImageUpload = async (imageBase64) => {
     const imageBuffer = getBase64Data(imageBase64);
     const imageSharp = sharp(imageBuffer);
     const metadata = await imageSharp.metadata();
-    if (metadata.width > 1200 || metadata.height > 800) {
+    if (metadata.width > 1200 || metadata.height > 1000) {
       throw new Error("รูปภาพมีขนาดใหญ่กว่า 1200x800");
     }
     const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
@@ -41,6 +42,8 @@ async function handleVideoUpload(videoFile) {
     throw new Error(`การอัพโหลดวีดีโอภาพล้มเหลว: ${error.message}`);
   }
 }
+
+
 
 export default handleImageUpload;
 export { handleVideoUpload };
