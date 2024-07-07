@@ -25,7 +25,7 @@ const handleImageUpload = async (imageBase64) => {
   } catch (error) {
     throw new Error(`การอัพโหลดรูปภาพล้มเหลว: ${error.message}`);
   }
-};
+}
 
 async function handleVideoUpload(videoFile) {
   try {

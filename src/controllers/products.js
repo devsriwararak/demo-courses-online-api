@@ -43,15 +43,16 @@ export const addNewProduct = async (req, res) => {
 export const uploadMiddleware = upload.single("video");
 
 export const getAllProducts = async (req, res) => {
-  const { search } = req.body;
+  const { search , full } = req.body;
   const db = await pool.connect();
   try {
     // paginations
     const page = parseInt(req.body.page) || 1;
-    const limit = 3;
-    const offset = (page - 1) * limit;
+
     const sqlPage = `SELECT COUNT(id) FROM products`;
     const resultPage = await db.query(sqlPage);
+    const limit = full ? resultPage.rows[0].count : 3 ;
+    const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -99,8 +100,16 @@ export const deleteProductById = async (req, res) => {
   const { id } = req.params;
   const db = await pool.connect();
   try {
+    const sqlCheck = `SELECT image, video FROM products WHERE id = $1`
+    const resultCheck = await db.query(sqlCheck, [id])
+    const data = resultCheck.rows[0]
+    if(!data) return res.status(400).json({message : 'ไม่พบข้อมูลที่ต้องการลบ'})
+
+    await deleteImageFtp(`/images/${data.image}`)
+    await deleteImageFtp(`/videos/${data.video}`)
     const sql = `DELETE FROM products WHERE id = $1`;
     await db.query(sql, [id]);
+
     return res.status(200).json({ message: "ลบสำเร็จ" });
   } catch (error) {
     console.error(error);

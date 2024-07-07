@@ -8,6 +8,8 @@ import loginRouter from './routes/login.js'
 import adminRouter from './routes/admin.js'
 import categoryRouter from './routes/category.js'
 import productRouter from './routes/products.js'
+import payRouter from "./routes/pay.js"
+import questionRouter from "./routes/question.js"
 
 const app = express()
 app.use(cors())
@@ -25,5 +27,7 @@ app.use('/api/login', loginRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/category', categoryRouter)
 app.use('/api/product', productRouter)
+app.use('/api/pay', payRouter)
+app.use('/api/question', questionRouter)
 
 export default app
