@@ -114,7 +114,7 @@ export const getQuestionList = async (req, res) => {
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    let sql = ` SELECT id, question FROM question WHERE products_id = $1`;
+    let sql = ` SELECT id, question, index FROM question WHERE products_id = $1`;
 
     const params = [products_id, limit, offset];
     if (search) {
@@ -122,7 +122,7 @@ export const getQuestionList = async (req, res) => {
       params.push(`%${search}%`);
     }
 
-    sql += `  LIMIT $2 OFFSET $3`;
+    sql += ` ORDER BY  index ASC  LIMIT $2 OFFSET $3`;
 
     const result = await db.query(sql, params);
     return res.status(200).json({
@@ -194,6 +194,32 @@ export const deleteQuestionListById = async(req,res)=> {
     await db.query(sql, [id])
     return res.status(200).json({message : 'ลบสำเร็จ'})
     
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(error.message)
+  } finally {
+    db.release()
+  }
+}
+
+// ลากเปลี่ยนข้อ
+export const changIndex = async(req,res)=> {
+  const {arrData, page} = req.body
+  const db = await pool.connect()
+  try {
+    const limit = 3
+    const offset = (page - 1) * limit;
+    const newData = arrData.map((item, index) => ({
+      id: item.id,
+      index: offset + index + 1
+    }));
+
+    const sql = `UPDATE question SET index = $1 WHERE id = $2`
+    for (const item of newData) {
+      await db.query(sql, [item.index, item.id])
+    }
+    return res.status(200).json({message : 'เปลี่ยนตำแหน่งสำเร็จ'})
+
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message)
