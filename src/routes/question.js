@@ -1,6 +1,6 @@
 import express from 'express'
 import { authenticationToken } from '../middleware/auth.js'
-import { changIndex, deleteQuestionListById, editQuestionListById, getAllQuestion, getCheckQuestion, getQuestionList, getQuestionListById, postNewQuestion } from '../controllers/question.js'
+import { changIndex, deleteQuestionListById, editQuestionListById, getAllQuestion, getCheckQuestion, getQuestionList, getQuestionListById, postNewQuestion, selectCourses } from '../controllers/question.js'
 
 const router = express.Router()
 
@@ -14,6 +14,9 @@ router.get('/list/:id', authenticationToken, getQuestionListById)
 router.put('/list', authenticationToken , editQuestionListById)
 router.delete('/list/:id', authenticationToken, deleteQuestionListById)
 router.post('/list/change', authenticationToken, changIndex)
+
+// SELECT
+router.get('/select/courses/:id', authenticationToken, selectCourses)
 
 
 export default router

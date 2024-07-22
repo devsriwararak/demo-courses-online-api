@@ -14,6 +14,7 @@ const getBase64Data = (base64String) => {
 
 const handleImageUpload = async (imageBase64) => {
   try {
+    // start data:image/jpeg;base64,
     const imageBuffer = getBase64Data(imageBase64);
     const imageSharp = sharp(imageBuffer);
     const metadata = await imageSharp.metadata();
