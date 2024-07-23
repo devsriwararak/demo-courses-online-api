@@ -4,7 +4,7 @@ import { addNewProduct, addNewProductsVideos, addNewProductTitle, deleteProductB
 
 const  routes = express.Router()
 
-routes.post('/add', authenticationToken, addNewProduct)
+routes.post('/add', authenticationToken, uploadMiddleware, addNewProduct)
 routes.post('/', authenticationToken , getAllProducts)
 
 routes.get('/:id', authenticationToken, getProductById)

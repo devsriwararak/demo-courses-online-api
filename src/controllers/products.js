@@ -61,7 +61,10 @@ export const getAllProducts = async (req, res) => {
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    let sql = `SELECT id, title, dec, price, price_sale,image, video, category_id FROM products`;
+    let sql = `SELECT products.id, title, dec, price, price_sale,image, video, category.id as category_id  ,  category.name as category_name
+    FROM products
+    JOIN category ON products.category_id = category.id
+    `;
     const params = [limit, offset];
     if (search) {
       sql += ` WHERE title LIKE $3`;
