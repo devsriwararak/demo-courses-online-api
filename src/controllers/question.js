@@ -1,5 +1,6 @@
 import pool from "../db/index.js";
-import handleImageUpload from "../libs/uploadFile.js";
+import { deleteImageFtp } from "../libs/ftpClient.js";
+import handleImageUpload, { handleVideoUpload } from "../libs/uploadFile.js";
 
 export const postNewQuestion = async (req, res) => {
   const { question, index, products_id, products_title_id } = req.body;
@@ -154,11 +155,10 @@ export const getQuestionList = async (req, res) => {
 // GET LIST BY ID
 export const getQuestionListById = async (req, res) => {
   const { id } = req.params;
-  console.log("555555555");
   const db = await pool.connect();
 
   try {
-    const sql = `SELECT id, question, index, products_id FROM question WHERE id = $1 `;
+    const sql = `SELECT id, question, index, products_id, products_title_id, image_question, image_answer FROM question WHERE id = $1 `;
     const result = await db.query(sql, [id]);
     return res.status(200).json(result.rows[0]);
   } catch (error) {
@@ -171,21 +171,40 @@ export const getQuestionListById = async (req, res) => {
 
 // Edit LIST BY ID
 export const editQuestionListById = async (req, res) => {
-  const { id, question, products_id } = req.body;
+  const { id, question, products_id, products_title_id, image_question, image_answer  } = req.body;
   const db = await pool.connect();
+ 
   try {
     if (!id || !products_id)
       return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
 
-    // check
-    const sqlCheck = `SELECT id FROM question WHERE question = $1 AND id != $2 AND products_id = $3`;
-    const resultCheck = await db.query(sqlCheck, [question, id, products_id]);
+    // check คำถามซ้ำ
+    const sqlCheck = `SELECT id FROM question WHERE question = $1 AND id != $2 AND products_id = $3 AND products_title_id = $4 `;
+    const resultCheck = await db.query(sqlCheck, [question, id, products_id, products_title_id]);
     if (resultCheck.rows.length > 0)
       return res.status(400).json({ message: "มีคำถามนี้แล้ว" });
 
+    // Check รูปซ้ำ
+    const sqlCheckImage = `SELECT image_question, image_answer FROM question WHERE id = $1  `
+    const resultCheckImage = await db.query(sqlCheckImage, [id])
+    let image_question_check = resultCheckImage.rows[0].image_question
+    let image_answer_check = resultCheckImage.rows[0].image_answer
+    // ถ้ามีรูปคำถาม-ใหม่
+    if(image_question !== image_question_check ){
+      await deleteImageFtp(`/images/${resultCheckImage.rows[0].image_question}`); // ลบวีดีโอเก่าก่อน
+      image_question_check = await handleImageUpload(image_question);
+    }
+    // ถ้ามีรูปคำตอบ-ใหม่
+    if(image_answer !== image_answer_check ){
+      await deleteImageFtp(`/images/${resultCheckImage.rows[0].image_answer}`); // ลบวีดีโอเก่าก่อน
+      image_answer_check = await handleImageUpload(image_answer);
+    }
+
+   
+
     // บันทึก
-    const sql = `UPDATE question SET question = $1 WHERE id = $2`;
-    await db.query(sql, [question, id]);
+    const sql = `UPDATE question SET question = $1, image_question = $2, image_answer = $3  WHERE id = $4`;
+    await db.query(sql, [question, image_question_check, image_answer_check,  id]);
     return res.status(200).json({ message: "บันทึกสำเร็จ" });
   } catch (error) {
     console.error(error);
@@ -200,6 +219,22 @@ export const deleteQuestionListById = async (req, res) => {
   const { id } = req.params;
   const db = await pool.connect();
   try {
+    // เช็คว่ามีรูปภาพไหม - เพื่อลบรูปก่อน
+    const sqlCheck = `SELECT image_question, image_answer FROM question WHERE id = $1   `
+    const resultCheck = await db.query(sqlCheck, [id])
+    const image_question_check = resultCheck.rows[0].image_question
+    const image_answer_check = resultCheck.rows[0].image_answer
+
+    if(image_question_check ){
+      console.log('มี 111');
+      await deleteImageFtp(`/images/${resultCheck.rows[0].image_question}`); // ลบวีดีโอเก่าก่อน
+    }
+
+    if(image_answer_check) {
+      console.log('มี 222');
+      await deleteImageFtp(`/images/${resultCheck.rows[0].image_answer}`); // ลบวีดีโอเก่าก่อน
+    }
+
     const sql = `DELETE FROM question WHERE id = $1`;
     await db.query(sql, [id]);
     return res.status(200).json({ message: "ลบสำเร็จ" });

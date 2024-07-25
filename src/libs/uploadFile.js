@@ -13,6 +13,7 @@ const getBase64Data = (base64String) => {
 };
 
 const handleImageUpload = async (imageBase64) => {
+  console.log(imageBase64);
   try {
     // start data:image/jpeg;base64,
     const imageBuffer = getBase64Data(imageBase64);
@@ -26,7 +27,7 @@ const handleImageUpload = async (imageBase64) => {
   } catch (error) {
     throw new Error(`การอัพโหลดรูปภาพล้มเหลว: ${error.message}`);
   }
-}
+};
 
 async function handleVideoUpload(videoFile) {
   try {
@@ -43,8 +44,6 @@ async function handleVideoUpload(videoFile) {
     throw new Error(`การอัพโหลดวีดีโอภาพล้มเหลว: ${error.message}`);
   }
 }
-
-
 
 export default handleImageUpload;
 export { handleVideoUpload };
