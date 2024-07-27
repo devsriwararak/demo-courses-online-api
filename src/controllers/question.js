@@ -111,7 +111,7 @@ export const getCheckQuestion = async (req, res) => {
 
 // GET LIST
 export const getQuestionList = async (req, res) => {
-  const { search, products_id, full } = req.body;
+  const { search, products_id, products_title_id, full } = req.body;
   const db = await pool.connect();
   try {
     if (!products_id)
@@ -121,28 +121,34 @@ export const getQuestionList = async (req, res) => {
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM question WHERE products_id = $1`;
     const resultPage = await db.query(sqlPage, [products_id]);
-    const limit = full ? resultPage.rows[0].count : 3;
+    const limit = full ? resultPage.rows[0].count : 9;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    let sql = ` SELECT id, question, index, image_question, image_answer, products_id, products_title_id FROM question WHERE products_id = $1`;
+    let sql = ` SELECT id, question, index, image_question, image_answer, products_id, products_title_id FROM question WHERE products_id = $1 AND products_title_id = $2`;
 
-    const params = [products_id, limit, offset];
+    const params = [products_id, products_title_id, limit, offset];
     if (search) {
-      sql += ` AND question LIKE $4`;
+      sql += ` AND question LIKE $5`;
       params.push(`%${search}%`);
     }
 
-    sql += ` ORDER BY  index ASC  LIMIT $2 OFFSET $3`;
+    sql += ` ORDER BY  index ASC  LIMIT $3 OFFSET $4`;
 
     const result = await db.query(sql, params);
+
+    // หา INDEX ต่อไป
+    const sqlIndex = `SELECT COUNT(id) FROM question WHERE products_id = $1 AND products_title_id = $2  `
+    const resultIndex = await db.query(sqlIndex, [products_id, products_title_id])
     return res.status(200).json({
       page,
       limit,
       totalPages,
       totalItems,
-      data: result.rows,
+      index : parseInt(resultIndex.rows[0].count) + 1 ,
+      data: result.rows
+
     });
   } catch (error) {
     console.error(error);
@@ -226,12 +232,10 @@ export const deleteQuestionListById = async (req, res) => {
     const image_answer_check = resultCheck.rows[0].image_answer
 
     if(image_question_check ){
-      console.log('มี 111');
       await deleteImageFtp(`/images/${resultCheck.rows[0].image_question}`); // ลบวีดีโอเก่าก่อน
     }
 
     if(image_answer_check) {
-      console.log('มี 222');
       await deleteImageFtp(`/images/${resultCheck.rows[0].image_answer}`); // ลบวีดีโอเก่าก่อน
     }
 
