@@ -45,5 +45,22 @@ async function handleVideoUpload(videoFile) {
   }
 }
 
+
+async function uploadImageFile(file) {
+
+  try {
+    const imageBuffer = file.buffer
+    const imageSharp = sharp(imageBuffer);
+    const metadata = await imageSharp.metadata();
+    if (metadata.width > 1200 || metadata.height > 1000) {
+      throw new Error("รูปภาพมีขนาดใหญ่กว่า 1200x800");
+    }
+    const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
+    return imageName
+  } catch (error) {
+    throw new Error(`การอัพโหลดวีดีโอภาพล้มเหลว: ${error.message}`);
+  }
+}
+
 export default handleImageUpload;
-export { handleVideoUpload };
+export { handleVideoUpload, uploadImageFile };

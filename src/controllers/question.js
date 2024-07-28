@@ -254,7 +254,6 @@ export const deleteQuestionListById = async (req, res) => {
 export const changIndex = async (req, res) => {
   const { arrData, page } = req.body;
   const db = await pool.connect();
-  console.log(arrData);
   try {
     const limit = 9;
     const offset = (page - 1) * limit;
@@ -263,9 +262,7 @@ export const changIndex = async (req, res) => {
       index: offset + index + 1,
     }));
 
-    console.log('********************');
 
-    console.log(newData);
 
     const sql = `UPDATE question SET index = $1 WHERE id = $2`;
     for (const item of newData) {

@@ -10,6 +10,7 @@ import categoryRouter from './routes/category.js'
 import productRouter from './routes/products.js'
 import payRouter from "./routes/pay.js"
 import questionRouter from "./routes/question.js"
+import reviewsRouter from './routes/reviews.js'
 
 const app = express()
 app.use(cors())
@@ -29,5 +30,6 @@ app.use('/api/category', categoryRouter)
 app.use('/api/product', productRouter)
 app.use('/api/pay', payRouter)
 app.use('/api/question', questionRouter)
+app.use('/api/reviews', reviewsRouter)
 
 export default app
