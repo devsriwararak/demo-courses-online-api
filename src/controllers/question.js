@@ -119,8 +119,8 @@ export const getQuestionList = async (req, res) => {
 
     // paginations
     const page = parseInt(req.body.page) || 1;
-    const sqlPage = `SELECT COUNT(id) FROM question WHERE products_id = $1`;
-    const resultPage = await db.query(sqlPage, [products_id]);
+    const sqlPage = `SELECT COUNT(id) FROM question WHERE products_id = $1 AND products_title_id = $2`;
+    const resultPage = await db.query(sqlPage, [products_id, products_title_id]);
     const limit = full ? resultPage.rows[0].count : 9;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
@@ -254,13 +254,18 @@ export const deleteQuestionListById = async (req, res) => {
 export const changIndex = async (req, res) => {
   const { arrData, page } = req.body;
   const db = await pool.connect();
+  console.log(arrData);
   try {
-    const limit = 3;
+    const limit = 9;
     const offset = (page - 1) * limit;
     const newData = arrData.map((item, index) => ({
       id: item.id,
       index: offset + index + 1,
     }));
+
+    console.log('********************');
+
+    console.log(newData);
 
     const sql = `UPDATE question SET index = $1 WHERE id = $2`;
     for (const item of newData) {
