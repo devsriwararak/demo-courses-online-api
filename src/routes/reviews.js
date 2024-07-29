@@ -8,6 +8,6 @@ router.post('/', authenticationToken, postALlReviews  )
 router.get('/images/:reviews_id', authenticationToken, getReviewImageList  )
 router.get('/:id', authenticationToken, getReviewsByid  )
 router.delete('/:id', authenticationToken, deleteReviewsById  )
-router.put('/', authenticationToken, putReviews  )
+router.put('/', authenticationToken, uploadMiddleware, putReviews  )
 
 export default router

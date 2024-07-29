@@ -62,7 +62,7 @@ export const postNewReviews = async (req, res) => {
 };
 
 export const postALlReviews = async (req, res) => {
-  const { search, full } = req.body;
+  const { search, full, type } = req.body || "";
   const db = await pool.connect();
   try {
     // paginations
@@ -74,12 +74,18 @@ export const postALlReviews = async (req, res) => {
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    let sql = `SELECT id, title, dec, image_title FROM reviews 
-    `;
+    let sql = `SELECT id, title, dec, image_title, type FROM reviews `;
     const params = [limit, offset];
-    if (search) {
+
+    if (search && type) {
+      sql += ` WHERE title LIKE $3 AND type = $4`;
+      params.push(`%${search}%`, type);
+    } else if (search) {
       sql += ` WHERE title LIKE $3`;
       params.push(`%${search}%`);
+    } else if (type !== "") {
+      sql += ` WHERE type = $3`;
+      params.push(type);
     }
 
     sql += ` LIMIT $1 OFFSET $2`;
@@ -105,7 +111,7 @@ export const getReviewImageList = async (req, res) => {
   const db = await pool.connect();
 
   try {
-    const sql = `SELECT image FROM reviews_image WHERE reviews_id = $1`;
+    const sql = `SELECT id, image FROM reviews_image WHERE reviews_id = $1`;
     const result = await db.query(sql, [reviews_id]);
     return res.status(200).json(result.rows);
   } catch (error) {
@@ -171,30 +177,65 @@ export const deleteReviewsById = async (req, res) => {
   }
 };
 
-export const putReviews = async(req,res)=> {
-    const {id, type, title, dec, cover, album} = req.body
-    const db = await pool.connect()
-    try {
-        if(!id || !title)return res.status(400).json({message : 'ส่งข้อมูลไม่ครบ'})
-            
-        
-        // เช็ครูป-หัว
-        const sqlCheckHead = `SELECT image_title FROM reviews WHERE id = $1`
-        const resultCheckHead = await db.query(sqlCheckHead, [id])
+export const putReviews = async (req, res) => {
+  const { id, type, title, dec } = req.body;
+  const delete_image = JSON.parse(req.body.delete_image || "[]");
+  console.log(req.body);
+  console.log(delete_image);
+  const coverFile = req.files["cover"] ? req.files["cover"][0] : null;
+  const albumFiles = req.files["album"];
+  let fileName = "";
+  let finenameArr = [];
 
-        let nameImage_title = resultCheckHead.rows[0].image_title
-        if(resultCheckHead.rows[0].image_title !== cover){
-            // ลบรูปเก่าก่อน
-            nameImage_title = cover
-        }
+  const db = await pool.connect();
+  try {
+    if (!id) return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
 
-        // เช็ครูป-รายการ
+    // เช็คข้อมูลซ้ำ
+    const sqlCheck = `SELECT id FROM reviews WHERE title = $1 AND id != $2`;
+    const resultCheck = await db.query(sqlCheck, [title, id]);
+    if (resultCheck.rows.length > 0)
+      return res.status(400).json({ message: "มีข้อมูลนี้แล้ว" });
 
-        
-    } catch (error) {
-        console.error(error);
-        return req.status(500).json(error.message)
-    }finally {
-        db.release()
+    // เช็ครูป-หัว
+    const sqlCheckHead = `SELECT image_title FROM reviews WHERE id = $1`;
+    const resultCheckHead = await db.query(sqlCheckHead, [id]);
+    let nameImage_title = resultCheckHead.rows[0].image_title;
+
+    // เช็คมีรูปที่จะลบไหม
+    if (delete_image.length > 0) {
+      const sqlDeleteImageList = `DELETE FROM reviews_image WHERE id = $1`;
+      for (const item of delete_image) {
+        await deleteImageFtp(`/images/${item.image}`); // ลบรูปเก่าก่อน
+        // SQL ลบ
+        await db.query(sqlDeleteImageList, [item.id]);
+      }
     }
-}
+
+    if (coverFile) {
+      await deleteImageFtp(`/images/${resultCheckHead.rows[0].image_title}`); // ลบรูปเก่าก่อน
+      fileName = await uploadImageFile(coverFile);
+    }
+
+    if (albumFiles) {
+      const sqlList = `INSERT INTO reviews_image (image, reviews_id) VALUES ($1)`;
+      for (const file of albumFiles) {
+        const name = await uploadImageFile(file);
+        // finenameArr.push(name);
+        // SQL เพิ่มรูปใหม่-รายการ
+        await db.query(sqlList, [name, id]);
+      }
+    }
+
+    // บันทึกข้อมูล
+    const sql = `UPDATE reviews SET title = $1, dec = $2, type = $3, image_title = $4 WHERE id = $5`;
+    await db.query(sql, [title, dec, type, fileName, id]);
+
+    return res.status(200).json({ message: "ทำรายการสำเร็จ" });
+  } catch (error) {
+    console.error(error);
+    return req.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
