@@ -217,3 +217,19 @@ export const putActivity = async (req, res) => {
     db.release();
   }
 };
+
+export const getActivityImageList = async (req, res) => {
+  const { activity_id } = req.params;
+  const db = await pool.connect();
+
+  try {
+    const sql = `SELECT id, image FROM activity_image WHERE activity_id = $1`;
+    const result = await db.query(sql, [activity_id]);
+    return res.status(200).json(result.rows);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
