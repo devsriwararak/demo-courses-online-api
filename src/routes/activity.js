@@ -8,7 +8,7 @@ router.post('/', authenticationToken ,getAllActivity  )
 router.get('/:id', authenticationToken ,getActivityByid  )
 router.delete('/:id', authenticationToken ,deleteActivityById  )
 router.put('/', authenticationToken ,uploadMiddleware,putActivity  )
-router.get('/image/:activity_id', authenticationToken ,getActivityImageList  )
+router.get('/images/:activity_id', authenticationToken ,getActivityImageList  )
 
 
 export default router
