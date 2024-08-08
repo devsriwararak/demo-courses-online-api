@@ -56,7 +56,7 @@ export const getAllProducts = async (req, res) => {
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM products`;
     const resultPage = await db.query(sqlPage);
-    const limit = full ? resultPage.rows[0].count : 3;
+    const limit = full ? resultPage.rows[0].count : 8;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
@@ -214,7 +214,7 @@ export const getAllProductsTitle = async (req, res) => {
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM products_title WHERE products_id = $1`;
     const resultPage = await db.query(sqlPage, [products_id]);
-    const limit = full ? resultPage.rows[0].count : 3;
+    const limit = full ? resultPage.rows[0].count : 5;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
@@ -327,7 +327,7 @@ export const getAllProductsVideos = async (req, res) => {
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM products_videos WHERE products_title_id = $1`;
     const resultPage = await db.query(sqlPage, [products_title_id]);
-    const limit = full ? resultPage.rows[0].count : 3;
+    const limit = full ? resultPage.rows[0].count : 4;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
