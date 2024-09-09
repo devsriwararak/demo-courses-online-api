@@ -2,6 +2,9 @@ import pool from "../db/index.js";
 import multer from "multer";
 import handleImageUpload, { handleVideoUpload } from "../libs/uploadFile.js";
 import { deleteImageFtp } from "../libs/ftpClient.js";
+import { createTemporaryUrl } from "../libs/userAndVideos.js";
+import crypto from "crypto";
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 // upload middleware
@@ -409,5 +412,106 @@ export const deleteProductVideoById = async (req, res) => {
     return res.status(500).json(error.message);
   } finally {
     db.release();
+  }
+};
+
+// User GET Videso
+export const userGetVideo1 = async (req, res) => {
+  const { products_id, products_title_id, products_videos_id, users_id } =
+    req.body;
+  const db = await pool.connect();
+  try {
+    // 1 ตรวจสอบว่าผู้ใช้ได้ซื้อคอร์สหรือไม่
+    const coursePurchased = await pool.query(
+      "SELECT id FROM pay WHERE users_id = $1 AND products_id = $2",
+      [users_id, products_id]
+    );
+
+    if (coursePurchased.rowCount === 0) {
+      return res.status(403).json({
+        message: "คุณยังไม่ได้ซื้อคอร์สเรียนนี้",
+      });
+    }
+
+    // 2. ตรวจสอบว่าหัวข้อและวิดีโออยู่ในคอร์สที่ถูกต้อง
+    const sqlCheckvideo = ` 
+    SELECT v.id, v.videos 
+    FROM products_videos v
+    JOIN products_title t ON v.products_title_id = t.id
+    JOIN products c ON t.products_id = c.id
+    WHERE v.id = $1 AND t.id =$2 AND c.id = $3
+    `;
+    const resultCheckvideo = await db.query(sqlCheckvideo, [
+      products_videos_id,
+      products_title_id,
+      products_id,
+    ]);
+
+    if (resultCheckvideo.rowCount === 0) {
+      return res.status(404).json({ message: "ไม่พบวิดีโอที่ต้องการ" });
+    }
+
+    const videoPath = resultCheckvideo.rows[0].videos;
+
+    // 3. ตรวจสอบ token สำหรับผู้ใช้และวิดีโอ
+    const existingTokenQuery = `
+      SELECT token, exp 
+      FROM video_tokens 
+      WHERE products_videos_id = $1 AND users_id = $2
+    `;
+    const tokenResult = await db.query(existingTokenQuery, [
+      products_videos_id,
+      users_id,
+    ]);
+
+    let temporaryVideoUrl;
+    if (
+      tokenResult.rowCount === 0 ||
+      Date.now() > parseInt(tokenResult.rows[0].exp, 10)
+    ) {
+      console.log(`11111111111`);
+
+      // ถ้าไม่มี token หรือ token หมดอายุแล้ว ให้สร้าง token ใหม่
+      const token = crypto.randomBytes(20).toString("hex");
+      const expiresAt = Date.now() + 300 * 1000; // 5 นาที
+
+      // อัปเดต token ใหม่ลงฐานข้อมูล
+      const insertTokenQuery = `
+        INSERT INTO video_tokens (token, products_videos_id, users_id, exp) 
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (products_videos_id, users_id) 
+        DO UPDATE SET token = $1, exp = $4
+      `;
+      await db.query(insertTokenQuery, [
+        token,
+        products_videos_id,
+        users_id,
+        expiresAt,
+      ]);
+
+      temporaryVideoUrl = `http://203.146.252.205/videos/${videoPath}?token=${token}&expires=${expiresAt}`;
+    } else {
+      console.log(`22222222222222222`);
+      // ถ้า token ยังไม่หมดอายุ ใช้ token เดิม
+      const { token, exp } = tokenResult.rows[0];
+      temporaryVideoUrl = `http://203.146.252.205/videos/${videoPath}?token=${token}&expires=${exp}`;
+    }
+
+    return res.status(200).json({ url: temporaryVideoUrl });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
+
+// ขอวีดีโอ
+export const userGetVideo = async (req, res) => {
+  const filePath = `/home/ftp/courses_online/videos/a99f5c63c84b38e5654236f858d9b9cf.mp4`;
+  try {
+    return res.status(200).sendFile(filePath)
+  } catch (error) {
+    console.log(error);
   }
 };

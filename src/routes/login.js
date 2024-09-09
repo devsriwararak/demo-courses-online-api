@@ -1,8 +1,9 @@
 import express from 'express'
-import { loginUser } from '../controllers/login.js'
+import { loginUser, loginUserOtp } from '../controllers/login.js'
 
 const router = express.Router()
 
 router.post('/', loginUser)
+router.post('/otp', loginUserOtp)
 
 export default router

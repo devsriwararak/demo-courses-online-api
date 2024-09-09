@@ -43,7 +43,7 @@ export const getAllEbook = async (req, res) => {
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM ebook`;
     const resultPage = await db.query(sqlPage);
-    const limit = full ? resultPage.rows[0].count : 3;
+    const limit = full ? resultPage.rows[0].count : 9;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);

@@ -1,10 +1,10 @@
-
-import ftp from 'basic-ftp';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import crypto from 'crypto';
-import { Readable } from 'stream';
-import dotenv from 'dotenv';
+// ไฟล์ ftp.js ของฉัน
+import ftp from "basic-ftp";
+import path from "path";
+import { fileURLToPath } from "url";
+import crypto from "crypto";
+import { Readable } from "stream";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -15,7 +15,7 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
   const client = new ftp.Client();
   client.ftp.verbose = true; // เปิดการแสดงข้อความเพิ่มเติมสำหรับการดีบัก
   client.ftp.timeout = 60000; // เพิ่มเวลาหมดเวลาเป็น 60 วินาที
-  
+
   try {
     await client.access({
       host: process.env.FTP_HOST,
@@ -24,11 +24,13 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
       secure: false,
     });
 
-    const fileName = `${crypto.randomBytes(16).toString('hex')}${path.extname(originalName)}`;
+    const fileName = `${crypto.randomBytes(16).toString("hex")}${path.extname(
+      originalName
+    )}`;
 
     // สร้าง Readable stream จาก buffer
     const stream = new Readable();
-    stream._read = () => {}; // _read is required but you can noop it
+    stream._read = () => {};
     stream.push(fileBuffer);
     stream.push(null);
 
@@ -42,12 +44,10 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
   }
 };
 
-
-
 export default uploadToFTP;
 
 
-export const deleteImageFtp = async(imagePath)=> {
+export const deleteImageFtp = async (imagePath) => {
   const client = new ftp.Client();
   client.ftp.verbose = true;
   client.ftp.timeout = 60000;
@@ -61,14 +61,14 @@ export const deleteImageFtp = async(imagePath)=> {
 
     await client.remove(imagePath);
     console.log(`Deleted ${imagePath} successfully`);
-
   } catch (error) {
     console.error(`Error deleting file from FTP: ${error.message}`);
-    // throw new Error(`ลบรูปภาพล้มเหลว: ${error.message}`);
+    throw new Error(`Delete failed: ${error.message}`);
   } finally {
     client.close();
   }
+};
+
+export const viewVideoFtp = async(fileName)=>{
+  
 }
-
-
-

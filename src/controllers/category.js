@@ -10,7 +10,7 @@ export const getAllCategory = async (req, res) => {
     const sqlPage = `SELECT COUNT(id) FROM category`;
     const resultPage = await db.query(sqlPage);
 
-    const limit = full ? resultPage.rows[0].count : 3;
+    const limit = full ? resultPage.rows[0].count : 10;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
