@@ -26,6 +26,6 @@ routes.put('/videos', authenticationToken, uploadMiddleware,  editProductsVideos
 routes.delete('/videos/:id' ,authenticationToken, deleteProductVideoById)
 
 // User GET Videso
-routes.get('/courses/test', userGetVideo )
+routes.post('/courses/test/', userGetVideo )
 
 export default routes

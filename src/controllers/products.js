@@ -4,6 +4,8 @@ import handleImageUpload, { handleVideoUpload } from "../libs/uploadFile.js";
 import { deleteImageFtp } from "../libs/ftpClient.js";
 import { createTemporaryUrl } from "../libs/userAndVideos.js";
 import crypto from "crypto";
+import path from "path";
+import fs from "fs";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -52,14 +54,16 @@ export const addNewProduct = async (req, res) => {
 // add corses-title-video
 
 export const getAllProducts = async (req, res) => {
-  const { search, full } = req.body;
+  const { search, full, category_id  } = req.body;
   const db = await pool.connect();
+  console.log(req.body);
+  
   try {
     // paginations
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM products`;
     const resultPage = await db.query(sqlPage);
-    const limit = full ? resultPage.rows[0].count : 8;
+    const limit = full ? resultPage.rows[0].count :   8;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
@@ -69,14 +73,38 @@ export const getAllProducts = async (req, res) => {
     JOIN category ON products.category_id = category.id
     `;
     const params = [limit, offset];
+    let conditions = [];
+    let paramIndex = 3;
+
     if (search) {
-      sql += ` WHERE title LIKE $3`;
-      params.push(`%${search}%`);
+      conditions.push(`title LIKE $${paramIndex}`);
+      params.push(`${search}%`);
+      paramIndex++;
     }
+
+    if (category_id > 0) {
+      conditions.push(`category_id = $${paramIndex}`);
+      params.push(category_id);
+      paramIndex++;
+      console.log('111111111');
+      
+    }
+
+    // ถ้ามีเงื่อนไขเพิ่ม
+    if (conditions.length > 0) {
+      sql += ` WHERE ` + conditions.join(' AND ');
+    }
+
+    // if(search && category_id) {
+    //   sql += ` WHERE title LIKE $3 AND category_id = $4 `
+    //   params.push(`%${search}%`, category_id );
+    // }
 
     sql += ` LIMIT $1 OFFSET $2`;
 
     const result = await db.query(sql, params);
+    // console.log(result.rows);
+
     return res.status(200).json({
       page,
       limit,
@@ -84,6 +112,7 @@ export const getAllProducts = async (req, res) => {
       totalItems,
       data: result.rows,
     });
+    
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message);
@@ -416,7 +445,7 @@ export const deleteProductVideoById = async (req, res) => {
 };
 
 // User GET Videso
-export const userGetVideo1 = async (req, res) => {
+export const userGetVideo = async (req, res) => {
   const { products_id, products_title_id, products_videos_id, users_id } =
     req.body;
   const db = await pool.connect();
@@ -507,11 +536,3 @@ export const userGetVideo1 = async (req, res) => {
 };
 
 // ขอวีดีโอ
-export const userGetVideo = async (req, res) => {
-  const filePath = `/home/ftp/courses_online/videos/a99f5c63c84b38e5654236f858d9b9cf.mp4`;
-  try {
-    return res.status(200).sendFile(filePath)
-  } catch (error) {
-    console.log(error);
-  }
-};

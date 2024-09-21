@@ -22,6 +22,8 @@ export const loginUser = async (req, res) => {
     // เช็ค password ตรงกันไหม
     const user = result.rows[0];
     const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log(passwordMatch);
+
     if (!passwordMatch) {
       return res.status(400).json({ message: "รหัสผ่านไม่ถูกต้อง" });
     }
@@ -64,6 +66,73 @@ export const loginUserOtp = async (req, res) => {
     return res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", token });
   } catch (error) {
     console.log(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
+
+export const getMyUserData = async (req, res) => {
+  const { id } = req.params;
+  const db = await pool.connect();
+
+  try {
+    const sql = `SELECT id, username, name, email, phone, trade, address FROM users WHERE id = $1 `;
+    const result = await db.query(sql, [id]);
+    return res.status(200).json(result.rows[0]);
+  } catch (error) {
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
+
+export const putMyUserData = async (req, res) => {
+  const db = await pool.connect();
+  const { id, username, password, name, email, phone, trade, address } =
+    req.body;
+  console.log("222222");
+  console.log(req.body);
+
+  try {
+    if (!id) return res.status(400).json({ message: "ไม่พบผู้ใช้งาน" });
+
+    // check ซ้ำ
+    const sqlCheck = `SELECT id FROM users WHERE id != $1 AND (username = $2 OR email = $3 OR phone = $4) `;
+    const resultCheck = await db.query(sqlCheck, [id, username, email, phone]);
+
+    if (resultCheck.rowCount > 0)
+      return res.status(400).json({ message: "มีผู้ใช้นี้แล้ว กรุณาลองใหม่" });
+
+    // check password
+    const sqlCheckPassword = `SELECT password FROM users WHERE id = $1`;
+    const resultCheckPassword = await db.query(sqlCheckPassword, [id]);
+
+    let newPassword = resultCheckPassword.rows[0].password;
+
+    if (password !== "") {
+      const hashedPassword = await bcrypt.hash(password, 10); // เข้ารหัสรหัสผ่าน
+      newPassword = hashedPassword;
+    }
+
+    // บันทึก
+    const sql = `UPDATE users SET username = $1, password = $2 , name = $3, email = $4, phone = $5, trade = $6, address = $7 WHERE id = $8 `
+    await db.query(sql, [
+      username,
+      newPassword,
+      name,
+      email,
+      phone,
+      trade,
+      address,
+      id
+    ])
+    return res.status(200).json({message : 'บันทึกสำเร็จ', statusPassword :password === "" ? 0 : 1 })
+
+    
+    
+    console.log("กระบวนการต่อไป");
+  } catch (error) {
     return res.status(500).json(error.message);
   } finally {
     db.release();

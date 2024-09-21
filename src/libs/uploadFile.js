@@ -52,8 +52,8 @@ async function uploadImageFile(file) {
     const imageBuffer = file.buffer
     const imageSharp = sharp(imageBuffer);
     const metadata = await imageSharp.metadata();
-    if (metadata.width > 1200 || metadata.height > 1000) {
-      throw new Error("รูปภาพมีขนาดใหญ่กว่า 1200x800");
+    if (metadata.width > 1920 || metadata.height > 1080) {
+      throw new Error("รูปภาพมีขนาดใหญ่กว่า 1920 * 1080");
     }
     const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
     return imageName

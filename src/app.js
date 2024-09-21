@@ -14,6 +14,7 @@ import reviewsRouter from './routes/reviews.js'
 import activityRouter from './routes/activity.js'
 import ebookRouter from './routes/ebook.js'
 import otpRouter from './routes/otp.js'
+import homePageRouter from './routes/homepage.js'
 
 const app = express()
 app.use(cors())
@@ -37,5 +38,6 @@ app.use('/api/reviews', reviewsRouter)
 app.use('/api/activity', activityRouter)
 app.use('/api/ebook', ebookRouter)
 app.use('/api/otp' , otpRouter)
+app.use('/api/homepage' , homePageRouter)
 
 export default app
