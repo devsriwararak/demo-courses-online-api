@@ -52,11 +52,32 @@ async function uploadImageFile(file) {
     const imageBuffer = file.buffer
     const imageSharp = sharp(imageBuffer);
     const metadata = await imageSharp.metadata();
+
+    // if (metadata.width > 1920 || metadata.height > 1080) {
+    //   throw new Error("รูปภาพมีขนาดใหญ่กว่า 1920 * 1080");
+    // }
+    // const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
+    // return imageName
+
     if (metadata.width > 1920 || metadata.height > 1080) {
-      throw new Error("รูปภาพมีขนาดใหญ่กว่า 1920 * 1080");
+      // ปรับขนาดรูปภาพให้มีขนาดสูงสุดไม่เกิน 1920x1080
+      const resizedImageBuffer = await imageSharp
+        .resize({
+          width: 1920,
+          height: 1080,
+          fit: sharp.fit.inside, // รักษาอัตราส่วนของรูปภาพ
+          withoutEnlargement: true, // ป้องกันไม่ให้ขยายรูปถ้าขนาดเล็กอยู่แล้ว
+        })
+        .toBuffer();
+
+      const imageName = await uploadToFTP(resizedImageBuffer, "image.jpg", "/images");
+      return imageName;
+    } else {
+      // ถ้าขนาดรูปภาพไม่เกิน 1920x1080 ก็อัพโหลดตามปกติ
+      const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
+      return imageName;
     }
-    const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
-    return imageName
+
   } catch (error) {
     throw new Error(`การอัพโหลดวีดีโอภาพล้มเหลว: ${error.message}`);
   }

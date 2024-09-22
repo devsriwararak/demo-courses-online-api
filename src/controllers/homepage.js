@@ -3,19 +3,17 @@ import pool from "../db/index.js";
 // Courses
 export const getNewCourses = async (req, res) => {
   const db = await pool.connect();
-  const { full, search, filter_price  } = req.body;
+  const { full, search, filter_price } = req.body;
 
-  
   try {
-        // paginations
-        const page = parseInt(req.body.page) || 1;
-        const sqlPage = `SELECT COUNT(id) FROM products`;
-        const resultPage = await db.query(sqlPage);
-        const limit = full ? resultPage.rows[0].count : 12;
-        const offset = (page - 1) * limit;
-        const totalItems = parseInt(resultPage.rows[0].count);
-        const totalPages = Math.ceil(totalItems / limit);
-
+    // paginations
+    const page = parseInt(req.body.page) || 1;
+    const sqlPage = `SELECT COUNT(id) FROM products`;
+    const resultPage = await db.query(sqlPage);
+    const limit = full ? resultPage.rows[0].count : 12;
+    const offset = (page - 1) * limit;
+    const totalItems = parseInt(resultPage.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limit);
 
     let params = [limit, offset];
     let conditions = [];
@@ -33,7 +31,9 @@ export const getNewCourses = async (req, res) => {
       sql += ` WHERE ` + conditions.join(" AND ");
     }
 
-    sql += ` ORDER BY price ${filter_price === 1 ? "ASC" : "DESC"} LIMIT $1 OFFSET $2`;
+    sql += ` ORDER BY price ${
+      filter_price === 1 ? "ASC" : "DESC"
+    } LIMIT $1 OFFSET $2`;
 
     const result = await db.query(sql, params);
     return res.status(200).json({
@@ -43,9 +43,6 @@ export const getNewCourses = async (req, res) => {
       totalItems,
       data: result.rows,
     });
-
-
-
   } catch (error) {
     console.log(error);
     return res.status(500).json(error.message);
@@ -53,7 +50,6 @@ export const getNewCourses = async (req, res) => {
     db.release();
   }
 };
-
 
 export const getNewCoursesById = async (req, res) => {
   const db = await pool.connect();
@@ -105,14 +101,13 @@ export const getNews = async (req, res) => {
   const db = await pool.connect();
   const { full, search, home } = req.body;
   console.log(req.body);
-  
 
   try {
     // paginations
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM activity`;
     const resultPage = await db.query(sqlPage);
-    const limit = full ? resultPage.rows[0].count : home ? 3 : 12 ;
+    const limit = full ? resultPage.rows[0].count : home ? 3 : 12;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
@@ -195,51 +190,151 @@ export const getCategory = async (req, res) => {
 
 // Ebook
 export const getEbook = async (req, res) => {
-    const db = await pool.connect();
-    const { full, search } = req.body;
-    console.log(req.body);
-    
-  
-    try {
-      // paginations
-      const page = parseInt(req.body.page) || 1;
-      const sqlPage = `SELECT COUNT(id) FROM ebook`;
-      const resultPage = await db.query(sqlPage);
-      const limit = full ? resultPage.rows[0].count : 12 ;
-      const offset = (page - 1) * limit;
-      const totalItems = parseInt(resultPage.rows[0].count);
-      const totalPages = Math.ceil(totalItems / limit);
-  
-      let params = [limit, offset];
-      let conditions = [];
-      let paramIndex = 3;
-      let sql = `SELECT id, link, image_title, title, dec FROM ebook `;
-  
-      if (search) {
-        conditions.push(`title LIKE $${paramIndex}`);
-        params.push(`${search}%`);
-        paramIndex++;
-      }
-  
-      // ถ้ามีเงื่อนไขเพิ่ม
-      if (conditions.length > 0) {
-        sql += ` WHERE ` + conditions.join(" AND ");
-      }
-  
-      sql += ` ORDER BY id DESC LIMIT $1 OFFSET $2`;
-  
-      const result = await db.query(sql, params);
-      return res.status(200).json({
-        page,
-        limit,
-        totalPages,
-        totalItems,
-        data: result.rows,
-      });
-    } catch (error) {
-      console.log(error);
-      return res.status(500).json(error.message);
-    } finally {
-      db.release();
+  const db = await pool.connect();
+  const { full, search } = req.body;
+  console.log(req.body);
+
+  try {
+    // paginations
+    const page = parseInt(req.body.page) || 1;
+    const sqlPage = `SELECT COUNT(id) FROM ebook`;
+    const resultPage = await db.query(sqlPage);
+    const limit = full ? resultPage.rows[0].count : 12;
+    const offset = (page - 1) * limit;
+    const totalItems = parseInt(resultPage.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    let params = [limit, offset];
+    let conditions = [];
+    let paramIndex = 3;
+    let sql = `SELECT id, link, image_title, title, dec FROM ebook `;
+
+    if (search) {
+      conditions.push(`title LIKE $${paramIndex}`);
+      params.push(`${search}%`);
+      paramIndex++;
     }
-  };
+
+    // ถ้ามีเงื่อนไขเพิ่ม
+    if (conditions.length > 0) {
+      sql += ` WHERE ` + conditions.join(" AND ");
+    }
+
+    sql += ` ORDER BY id DESC LIMIT $1 OFFSET $2`;
+
+    const result = await db.query(sql, params);
+    return res.status(200).json({
+      page,
+      limit,
+      totalPages,
+      totalItems,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
+
+// Review
+export const getReviews = async (req, res) => {
+  const db = await pool.connect();
+  const { full, search, type } = req.body;
+  console.log(req.body);
+  const newType = type ? type : 0;
+  console.log(req.body);
+
+  try {
+    // paginations
+    const page = parseInt(req.body.page) || 1;
+    const sqlPage = `SELECT COUNT(id) FROM reviews WHERE type = $1`;
+    const resultPage = await db.query(sqlPage, [newType]);
+    const limit = full ? resultPage.rows[0].count : 12;
+    const offset = (page - 1) * limit;
+    const totalItems = parseInt(resultPage.rows[0].count);
+    const totalPages = Math.ceil(totalItems / limit);
+
+    let params = [newType, limit, offset];
+    let conditions = [];
+    let paramIndex = 4;
+    let sql = `SELECT id,  image_title, title, dec FROM reviews WHERE type = $1 `;
+
+    if (search) {
+      conditions.push(`title LIKE $${paramIndex}`);
+      params.push(`${search}%`);
+      paramIndex++;
+    }
+
+    // ถ้ามีเงื่อนไขเพิ่ม
+    if (conditions.length > 0) {
+      sql += ` AND ` + conditions.join(" AND ");
+    }
+
+    sql += ` ORDER BY id DESC LIMIT $2 OFFSET $3`;
+
+    const result = await db.query(sql, params);
+    return res.status(200).json({
+      page,
+      limit,
+      totalPages,
+      totalItems,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
+export const getReviewsById = async (req, res) => {
+  const { id } = req.params;
+  const db = await pool.connect();
+  try {
+    const sql = `
+    SELECT 
+    reviews.id as id,
+    reviews.title as reviews_title,
+    dec, image_title,
+    COALESCE(ARRAY_AGG(reviews_image.image), '{}') as result_list
+    FROM reviews
+    JOIN reviews_image ON reviews.id = reviews_image.reviews_id
+    WHERE reviews.id = $1 
+    GROUP BY reviews.id
+    `;
+    const result = await db.query(sql, [id]);
+    return res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
+
+// Top_4
+export const showTop4 = async (req, res) => {
+  const { name, id } = req.body;
+  const db = await pool.connect();
+  try {
+    if (!id && !name)
+      return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
+    let sql = ``;
+    if (name === "products") {
+      sql += ` SELECT id, title, dec, image FROM products WHERE id != $1`;
+    } else if (name === "activity") {
+      sql += ` SELECT id, title, dec, image_title FROM activity WHERE id != $1`;
+    }
+
+    sql += ` ORDER BY id DESC LIMIT 4`;
+    const result = await db.query(sql, [id]);
+    console.log(result.rows);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
