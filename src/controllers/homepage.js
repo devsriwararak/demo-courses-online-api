@@ -70,6 +70,8 @@ export const getNewCoursesById = async (req, res) => {
             products.image as product_image, 
             products.title as product_title, 
             products.dec as product_dec, 
+            products.price as products_price,
+            products.price_sale as products_price_sale,
             category.name as category_name,
             JSON_AGG(
                 JSON_BUILD_OBJECT(
@@ -326,11 +328,14 @@ export const showTop4 = async (req, res) => {
       sql += ` SELECT id, title, dec, image FROM products WHERE id != $1`;
     } else if (name === "activity") {
       sql += ` SELECT id, title, dec, image_title FROM activity WHERE id != $1`;
+    } else if (name === "reviews"){
+      sql += ` SELECT id, title, dec, image_title FROM reviews WHERE id != $1`;
     }
 
     sql += ` ORDER BY id DESC LIMIT 4`;
     const result = await db.query(sql, [id]);
-    console.log(result.rows);
+
+    return res.status(200).json(result.rows)
   } catch (error) {
     console.log(error);
     return res.status(500).json(error.message);

@@ -63,14 +63,14 @@ export const getAllProducts = async (req, res) => {
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM products`;
     const resultPage = await db.query(sqlPage);
-    const limit = full ? resultPage.rows[0].count :   8;
+    const limit = full ? resultPage.rows[0].count :   20;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
     let sql = `SELECT products.id, title, dec, price, price_sale,image, video, category.id as category_id  ,  category.name as category_name
     FROM products
-    JOIN category ON products.category_id = category.id
+     LEFT JOIN category ON products.category_id = category.id
     `;
     const params = [limit, offset];
     let conditions = [];
