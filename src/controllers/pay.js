@@ -63,15 +63,15 @@ export const getAllPay = async (req, res) => {
 };
 
 export const payNewCourses = async (req, res) => {
-  const { users_id, id } = req.body;
-  const products_id = id;
+  const { users_id, product_id } = req.body;
+  
   const db = await pool.connect();
   console.log(req.body);
 
   try {
     // ตรวจสอบว่าผู้ใช้เคยซื้อหรือไม่
     const sqlCheck = `SELECT id, start_pay, end_pay FROM pay WHERE users_id = $1 AND products_id = $2 ORDER BY id DESC LIMIT 1`;
-    const resultCheck = await db.query(sqlCheck, [users_id, products_id]);
+    const resultCheck = await db.query(sqlCheck, [users_id, product_id]);
 
     if (resultCheck.rowCount > 0) {
       //ถ้าเคยซื้อเช็คว่า คอร์สหมดอายุยัง
@@ -116,7 +116,7 @@ export const payNewCourses = async (req, res) => {
 
     const resultInsert = await db.query(
       "INSERT INTO pay (code, users_id, products_id) VALUES ($1, $2, $3) RETURNING status,id",
-      [newBillNumber, users_id, products_id]
+      [newBillNumber, users_id, product_id]
     );
 
     return res.status(200).json({
@@ -207,7 +207,9 @@ export const getPayMyUser = async (req, res) => {
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
-
+    console.log(req.body);
+    
+    
     let params = [users_id,limit, offset];
     let conditions = [];
     let paramIndex = 4;
@@ -215,15 +217,12 @@ export const getPayMyUser = async (req, res) => {
     pay.id as pay_id, code, status , products.title as products_name,
     products.price as products_price ,
     TO_CHAR(start_pay, 'DD/MM/YYYY') as start_pay  ,
-    TO_CHAR(end_pay, 'DD/MM/YYYY') as end_pay  
+    TO_CHAR(end_pay, 'DD/MM/YYYY') as end_pay  ,
+    pay.image as pay_image
     FROM pay 
-    JOIN products ON pay.products_id = products.id
+    LEFT JOIN products ON pay.products_id = products.id
     WHERE pay.users_id = $1 `;
 
-
-    // start_pay "2024-09-21T17:00:00.000Z
-    // end_pay  "2025-09-21T17:00:00.000Z"  
-    // ต้องการให้เป็น เวลาแบบ วันเดือนปี ปกติ โดยแก้ใน sql เลย
 
     if (search) {
       conditions.push(`code LIKE $${paramIndex}`);

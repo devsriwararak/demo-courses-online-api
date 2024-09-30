@@ -1,6 +1,6 @@
 import express from 'express'
 import { authenticationToken } from '../middleware/auth.js'
-import { changIndex, deleteQuestionListById, editQuestionListById, getAllQuestion, getCheckQuestion, getQuestionList, getQuestionListById, postNewQuestion, selectCourses } from '../controllers/question.js'
+import { changIndex, countQuestion, deleteQuestionListById, editQuestionListById, getAllQuestion, getCheckQuestion, getNewQuestion, getQuestionList, getQuestionListById, postNewQuestion, selectCourses } from '../controllers/question.js'
 
 const router = express.Router()
 
@@ -17,6 +17,11 @@ router.post('/list/change', authenticationToken, changIndex)
 
 // SELECT
 router.get('/select/courses/:id', authenticationToken, selectCourses)
+
+// new
+router.get('/new/count', authenticationToken, countQuestion)
+router.post('/new', authenticationToken, getNewQuestion)
+
 
 
 export default router

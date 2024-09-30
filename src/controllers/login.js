@@ -92,7 +92,6 @@ export const putMyUserData = async (req, res) => {
   const { id, username, password, name, email, phone, trade, address } =
     req.body;
   console.log("222222");
-  console.log(req.body);
 
   try {
     if (!id) return res.status(400).json({ message: "ไม่พบผู้ใช้งาน" });

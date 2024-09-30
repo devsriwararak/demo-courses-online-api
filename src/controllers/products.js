@@ -54,16 +54,16 @@ export const addNewProduct = async (req, res) => {
 // add corses-title-video
 
 export const getAllProducts = async (req, res) => {
-  const { search, full, category_id  } = req.body;
+  const { search, full, category_id } = req.body;
   const db = await pool.connect();
   console.log(req.body);
-  
+
   try {
     // paginations
     const page = parseInt(req.body.page) || 1;
     const sqlPage = `SELECT COUNT(id) FROM products`;
     const resultPage = await db.query(sqlPage);
-    const limit = full ? resultPage.rows[0].count :   20;
+    const limit = full ? resultPage.rows[0].count : 20;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
@@ -86,13 +86,12 @@ export const getAllProducts = async (req, res) => {
       conditions.push(`category_id = $${paramIndex}`);
       params.push(category_id);
       paramIndex++;
-      console.log('111111111');
-      
+      console.log("111111111");
     }
 
     // ถ้ามีเงื่อนไขเพิ่ม
     if (conditions.length > 0) {
-      sql += ` WHERE ` + conditions.join(' AND ');
+      sql += ` WHERE ` + conditions.join(" AND ");
     }
 
     // if(search && category_id) {
@@ -112,7 +111,6 @@ export const getAllProducts = async (req, res) => {
       totalItems,
       data: result.rows,
     });
-    
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message);
@@ -125,9 +123,45 @@ export const getProductById = async (req, res) => {
   const { id } = req.params;
   const db = await pool.connect();
   try {
-    const sql = `SELECT id, title, dec, price, price_sale,image, video, category_id FROM products WHERE id = $1`;
+    // const sql = `SELECT id, title, dec, price, price_sale,image, video, category_id FROM products WHERE id = $1`;
+
+    const sql = `
+    WITH video_counts AS (
+        SELECT 
+            products_title.id as products_title_id, 
+            COUNT(DISTINCT products_videos.id) as video_count
+        FROM products_title
+        LEFT JOIN products_videos ON products_title.id = products_videos.products_title_id
+        GROUP BY products_title.id
+    )
+    SELECT  
+        products.id as product_id, 
+        products.image as product_image, 
+        products.title as product_title, 
+        products.dec as product_dec, 
+        products.price as products_price,
+        products.price_sale as products_price_sale,
+        category.name as category_name,
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'title', products_title.title,
+                'video_count', COALESCE(video_counts.video_count, 0)
+            )
+        ) AS result_list
+    FROM products
+    JOIN category ON products.category_id = category.id
+    LEFT JOIN products_title ON products.id = products_title.products_id
+    LEFT JOIN video_counts ON products_title.id = video_counts.products_title_id
+    WHERE products.id = $1
+    GROUP BY products.id, category.name
+    ORDER BY products.id DESC
+    LIMIT 1`;
+
     const result = await db.query(sql, [id]);
-    return res.status(200).json(result.rows);
+    return res.status(200).json(result.rows[0]);
+
+    // const result = await db.query(sql, [id]);
+    // return res.status(200).json(result.rows);
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message);

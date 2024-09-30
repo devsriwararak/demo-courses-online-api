@@ -3,7 +3,7 @@ import ftp from "basic-ftp";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
-import { Readable } from "stream";
+import { PassThrough, Readable } from "stream";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -46,7 +46,6 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
 
 export default uploadToFTP;
 
-
 export const deleteImageFtp = async (imagePath) => {
   const client = new ftp.Client();
   client.ftp.verbose = true;
@@ -57,6 +56,7 @@ export const deleteImageFtp = async (imagePath) => {
       user: process.env.FTP_USER,
       password: process.env.FTP_PASSWORD,
       secure: false,
+      
     });
 
     await client.remove(imagePath);
@@ -69,6 +69,27 @@ export const deleteImageFtp = async (imagePath) => {
   }
 };
 
-export const viewVideoFtp = async(fileName)=>{
-  
-}
+export const viewVideoFtp = async (fileName, res) => {
+  const client = new ftp.Client();
+  client.ftp.verbose = true;
+
+  try {
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASSWORD,
+      secure: false,
+    });
+
+
+    res.setHeader("Content-Type", "video/mp4");
+    res.setHeader("Content-Disposition", "inline");
+    await client.downloadTo(res, `/videos/${fileName}`);
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "ไม่สามารถดึงไฟล์จาก FTP ได้" });
+  } finally {
+    client.close();
+  }
+};
