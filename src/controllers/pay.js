@@ -16,7 +16,7 @@ export const getAllPay = async (req, res) => {
   try {
     // paginations
     const page = parseInt(req.body.page) || 1;
-    const limit = 3;
+    const limit = 6;
     const offset = (page - 1) * limit;
     const sqlPage = `SELECT COUNT(id) FROM pay`;
     const resultPage = await db.query(sqlPage);
@@ -31,10 +31,14 @@ export const getAllPay = async (req, res) => {
     TO_CHAR(pay.end_pay , 'DD-MM-YYYY') as end_pay, 
     pay.status, 
     users.name , 
-    products.title
+    products.title ,
+    products.price ,
+    products.price_sale , 
+    pay.image
+
     FROM pay
-    JOIN users ON users.id = pay.users_id
-    JOIN products ON products.id = pay.products_id
+    LEFT JOIN users ON users.id = pay.users_id
+    LEFT JOIN products ON products.id = pay.products_id
     `;
 
     const params = [limit, offset];
@@ -46,7 +50,6 @@ export const getAllPay = async (req, res) => {
     sql += ` LIMIT $1 OFFSET $2 `;
 
     const result = await db.query(sql, params);
-    console.log(result.rows);
     return res.status(200).json({
       page,
       limit,

@@ -3,17 +3,23 @@ import { deleteImageFtp } from "../libs/ftpClient.js";
 import handleImageUpload, { handleVideoUpload } from "../libs/uploadFile.js";
 
 export const postNewQuestion = async (req, res) => {
-  const { question, index, products_id, products_title_id } = req.body;
+  const { question, products_id, products_title_id, new_question_id } = req.body;
   const image_question = req.body.image_question || "";
   const image_answer = req.body.image_answer || "";
   const db = await pool.connect();
   try {
-    if (!question || !index || !products_id || !products_title_id)
+    if (!question  || !products_id || !products_title_id)
       return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
 
     // เช็คข้อมูลซ้ำ
-    const sqlCheck = `SELECT id FROM question WHERE question = $1 AND products_title_id = $2 `;
-    const resultCheck = await db.query(sqlCheck, [question, products_title_id]);
+    let sqlCheck = `SELECT id FROM question WHERE question = $1 AND products_title_id = $2 `;
+    let paramsCheck = [question, products_title_id]
+    if(new_question_id) {
+      sqlCheck +=` AND new_question_id = $3 `
+      paramsCheck.push(new_question_id)
+    }
+
+    const resultCheck = await db.query(sqlCheck, paramsCheck);
     if (resultCheck.rows.length > 0)
       return res.status(400).json({ message: "มีคำถามนี้แล้ว" });
 
@@ -26,16 +32,23 @@ export const postNewQuestion = async (req, res) => {
     // อัพโหลดรูปภาพไปยัง FTP server
     const image_answer_name = await handleImageUpload(image_answer);
 
-    // บันทึก
-    const sql = `INSERT INTO question (question, index, products_id, products_title_id, image_question, image_answer  ) VALUES ($1,$2,$3,$4,$5,$6)`;
+    // บันทึก List
+    const sql = `INSERT INTO question (question, products_id, products_title_id, image_question, image_answer, new_question_id  ) VALUES ($1,$2,$3,$4,$5,$6)`;
     await db.query(sql, [
       question,
-      index,
       products_id,
       products_title_id,
       image_question_name,
       image_answer_name,
+      new_question_id ? new_question_id : null
     ]);
+
+    // อัพเดท status Table new_question
+    if(new_question_id){
+      const sqlUpdate = `UPDATE new_question SET status = 1 WHERE id = $1`
+      await db.query(sqlUpdate, [new_question_id])
+
+    }
     return res.status(200).json({ message: "บันทึกสำเร็จ" });
   } catch (error) {
     console.error(error);
@@ -118,33 +131,58 @@ export const getCheckQuestion = async (req, res) => {
 
 // GET LIST
 export const getQuestionList = async (req, res) => {
-  const { search, products_id, products_title_id, full } = req.body;
+  const { search, products_id, products_title_id, full, new_question_id  } = req.body;
   const db = await pool.connect();
+
   try {
     if (!products_id)
       return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
 
     // paginations
     const page = parseInt(req.body.page) || 1;
-    const sqlPage = `SELECT COUNT(id) FROM question WHERE products_id = $1 AND products_title_id = $2`;
-    const resultPage = await db.query(sqlPage, [
-      products_id,
-      products_title_id,
-    ]);
-    const limit = full ? resultPage.rows[0].count : 9;
+    let sqlPage = `SELECT COUNT(id) FROM question WHERE products_id = $1 AND products_title_id = $2`;
+    let paramsPage = [products_id, products_title_id ]
+
+    if(new_question_id) {
+      sqlPage += ` AND new_question_id = $3 `
+      paramsPage.push(new_question_id)
+    }else {
+      sqlPage += ` AND new_question_id IS NULL`
+    }
+
+    const resultPage = await db.query(sqlPage, paramsPage);
+    const limit = full ? resultPage.rows[0].count : 17;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    let sql = ` SELECT id, question, index, image_question, image_answer, products_id, products_title_id FROM question WHERE products_id = $1 AND products_title_id = $2`;
+    let sql = ` SELECT 
+    id, question, index, image_question, 
+    image_answer, 
+    products_id, 
+    products_title_id ,
+    new_question_id
+   
+    FROM question 
+    WHERE products_id = $1 AND products_title_id = $2 `;
 
-    const params = [products_id, products_title_id, limit, offset];
+    const params = [products_id, products_title_id];
     if (search) {
-      sql += ` AND question LIKE $5`;
+      sql += ` AND question LIKE $${params.length + 1}`;
       params.push(`%${search}%`);
+      console.log('search : ', params.length + 1);
     }
 
-    sql += ` ORDER BY  index ASC  LIMIT $3 OFFSET $4`;
+    if(new_question_id ){
+      
+      sql += ` AND new_question_id = $${params.length + 1}`;
+      params.push(new_question_id);
+    } else [
+      sql += ` AND new_question_id IS NULL `
+    ]
+
+    sql += ` ORDER BY  index ASC  LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
 
     const result = await db.query(sql, params);
 
@@ -176,7 +214,21 @@ export const getQuestionListById = async (req, res) => {
   const db = await pool.connect();
 
   try {
-    const sql = `SELECT id, question, index, products_id, products_title_id, image_question, image_answer FROM question WHERE id = $1 `;
+    const sql = `SELECT 
+    question.id as id, 
+    question, 
+    index, 
+    question.products_id as products_id , 
+    products_title_id, 
+    image_question, 
+    image_answer ,
+    products.title as products_name ,
+    products_title.title as products_title_name 
+
+    FROM question 
+    LEFT JOIN products ON question.products_id = products.id
+    LEFT JOIN products_title ON question.products_title_id = products_title.id
+    WHERE question.id = $1 `;
     const result = await db.query(sql, [id]);
     return res.status(200).json(result.rows[0]);
   } catch (error) {
@@ -198,10 +250,20 @@ export const editQuestionListById = async (req, res) => {
     image_answer,
   } = req.body;
   const db = await pool.connect();
-
+  console.log({
+    id,
+    question,
+    products_id,
+    products_title_id,
+    image_question,
+    image_answer,
+   
+  });
+  
+  
   try {
     if (!id || !products_id)
-      return res.status(400).json({ message: "ส่งข้อมูลไม่ครบ" });
+      return res.status(400).json({ message: "ส่งข้อมูลไม่ครบz" });
 
     // check คำถามซ้ำ
     const sqlCheck = `SELECT id FROM question WHERE question = $1 AND id != $2 AND products_id = $3 AND products_title_id = $4 `;
@@ -280,29 +342,29 @@ export const deleteQuestionListById = async (req, res) => {
 };
 
 // ลากเปลี่ยนข้อ
-export const changIndex = async (req, res) => {
-  const { arrData, page } = req.body;
-  const db = await pool.connect();
-  try {
-    const limit = 9;
-    const offset = (page - 1) * limit;
-    const newData = arrData.map((item, index) => ({
-      id: item.id,
-      index: offset + index + 1,
-    }));
+// export const changIndex = async (req, res) => {
+//   const { arrData, page } = req.body;
+//   const db = await pool.connect();
+//   try {
+//     const limit = 9;
+//     const offset = (page - 1) * limit;
+//     const newData = arrData.map((item, index) => ({
+//       id: item.id,
+//       index: offset + index + 1,
+//     }));
 
-    const sql = `UPDATE question SET index = $1 WHERE id = $2`;
-    for (const item of newData) {
-      await db.query(sql, [item.index, item.id]);
-    }
-    return res.status(200).json({ message: "เปลี่ยนตำแหน่งสำเร็จ" });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json(error.message);
-  } finally {
-    db.release();
-  }
-};
+//     const sql = `UPDATE question SET index = $1 WHERE id = $2`;
+//     for (const item of newData) {
+//       await db.query(sql, [item.index, item.id]);
+//     }
+//     return res.status(200).json({ message: "เปลี่ยนตำแหน่งสำเร็จ" });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json(error.message);
+//   } finally {
+//     db.release();
+//   }
+// };
 
 // SELECT
 export const selectCourses = async (req, res) => {
@@ -371,6 +433,7 @@ export const getNewQuestion = async (req, res) => {
     let sql = `SELECT 
     new_question.id as id, 
     users_id,
+    users.name as name,
      new_question.products_id as products_id , 
      products_title_id ,
      products.title as products_title ,
@@ -379,6 +442,7 @@ export const getNewQuestion = async (req, res) => {
      FROM new_question 
      LEFT JOIN products ON new_question.products_id = products.id
      LEFT JOIN products_title ON new_question.products_title_id = products_title.id
+     LEFT JOIN users ON new_question.users_id = users.id
      
      `;
 
@@ -391,7 +455,9 @@ export const getNewQuestion = async (req, res) => {
 
     sql += ` ORDER BY  new_question.id ASC  LIMIT $1 OFFSET $2`;
 
+
     const result = await db.query(sql, params);
+    
     return res.status(200).json({
       page,
       limit,
@@ -406,3 +472,29 @@ export const getNewQuestion = async (req, res) => {
     db.release();
   }
 };
+
+export const addNewQuestion = async(req,res)=>{
+  const {status, users_id, products_id, products_title_id} = req.body
+  console.log(req.body);
+  
+  const db = await pool.connect()
+  try {
+    if(status !== 0 || !users_id || !products_id || !products_title_id) return res.status(400).json({message : 'ส่งข้อมูลไม่ครบ'})
+
+      const sql = `INSERT INTO new_question (status, users_id,  products_id, products_title_id) VALUES ($1, $2, $3, $4)`
+      await db.query(sql, [
+        status ? status : 0,
+        users_id,
+        products_id,
+        products_title_id
+      ])
+      return res.status(200).json({message : 'บันทึกสำเร็จ'})
+      
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message)
+    
+  }finally {
+    db.release()
+  }
+}
