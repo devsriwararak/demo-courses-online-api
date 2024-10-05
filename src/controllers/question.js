@@ -498,3 +498,22 @@ export const addNewQuestion = async(req,res)=>{
     db.release()
   }
 }
+
+export const getMyNewQuestion = async(req,res)=> {
+  const db = await pool.connect()
+  try {
+    const {users_id} = req.params
+
+    const sql = `SELECT id, status, products_id, products_title_id FROM new_question WHERE users_id = $1 `
+    const result = await pool.query(sql, [users_id])
+    return res.status(200).json(result.rows)
+  
+    
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message)
+    
+  } finally {
+    db.release()
+  }
+}
