@@ -3,13 +3,22 @@ import pool from "../db/index.js";
 // Courses
 export const getNewCourses = async (req, res) => {
   const db = await pool.connect();
-  const { full, search, filter_price } = req.body;
+  const { full, search, filter_price, category_id } = req.body;
+
+  console.log(req.body);
+  
+  
 
   try {
     // paginations
+    let paramsPagination = []
     const page = parseInt(req.body.page) || 1;
-    const sqlPage = `SELECT COUNT(id) FROM products`;
-    const resultPage = await db.query(sqlPage);
+    let sqlPage = `SELECT COUNT(id) FROM products`;
+    if(category_id) {
+      sqlPage += ' WHERE category_id = $1 '
+      paramsPagination.push(category_id)
+    }
+    const resultPage = await db.query(sqlPage, paramsPagination);
     const limit = full ? resultPage.rows[0].count : 12;
     const offset = (page - 1) * limit;
     const totalItems = parseInt(resultPage.rows[0].count);
@@ -18,11 +27,26 @@ export const getNewCourses = async (req, res) => {
     let params = [limit, offset];
     let conditions = [];
     let paramIndex = 3;
-    let sql = `SELECT id, image, title, category_id, price, price_sale FROM products `;
+    let sql = `SELECT 
+    products.id as id, 
+    image, 
+    title, 
+    category_id, 
+    price, 
+    price_sale ,
+    category.name as category_name
+    FROM products
+    LEFT JOIN category ON products.category_id = category.id
+    `;
 
     if (search) {
-      conditions.push(`title LIKE $${paramIndex}`);
+      conditions.push(`products.title LIKE $${paramIndex}`);
       params.push(`${search}%`);
+      paramIndex++;
+    }
+    if(category_id) {
+      conditions.push(`products.category_id = $${paramIndex}`);
+      params.push(category_id);
       paramIndex++;
     }
 
@@ -31,7 +55,7 @@ export const getNewCourses = async (req, res) => {
       sql += ` WHERE ` + conditions.join(" AND ");
     }
 
-    sql += ` ORDER BY price ${
+    sql += ` ORDER BY products.price ${
       filter_price === 1 ? "ASC" : "DESC"
     } LIMIT $1 OFFSET $2`;
 
