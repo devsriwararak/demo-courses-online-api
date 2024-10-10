@@ -27,13 +27,30 @@ export async function verifySlipAmountAndAccount(slipBuffer, expectedAmount) {
     const amount = response.data.data.amount;
     const sendToname = response.data.data.receiver.name;
     const sendToAccount = response.data.data.receiver.account.value;
+    const transRef = response.data.data.transRef
 
+    // console.log(response.data);
+
+    console.log("************");
+
+    console.log({amount, sendToname, sendToAccount});
+    
+    // console.log({transRef});
+    console.log("************");
+
+    console.log({expectedAmount, expectedAccountName , expectedAccountNumber });
+    
+    
+    
 
     // ตรวจสอบว่าการตรวจสอบสลิปสำเร็จ, ยอดเงินถูกต้อง, และบัญชีปลายทางถูกต้องหรือไม่
       if ( amount == expectedAmount && sendToname == expectedAccountName &&  sendToAccount == expectedAccountNumber  ) {        
-        return true;
+        console.log('111111111');
+        
+        return {status : true, transRef };
       } else {
-        return false;
+        console.log('2222222222');
+        return {status : false, transRef };
       }
   } catch (error) {
     console.error("Error verifying slip:", error);

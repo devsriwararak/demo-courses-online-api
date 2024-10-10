@@ -9,7 +9,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 // upload middleware
 export const uploadMiddleware = upload.single("file");
 
-
 export const getAllPay = async (req, res) => {
   const { search } = req.body;
   const db = await pool.connect();
@@ -67,7 +66,7 @@ export const getAllPay = async (req, res) => {
 
 export const payNewCourses = async (req, res) => {
   const { users_id, product_id } = req.body;
-  
+
   const db = await pool.connect();
   console.log(req.body);
 
@@ -138,19 +137,19 @@ export const payNewCourses = async (req, res) => {
   }
 };
 
-
 export const updateCheckSlip = async (req, res) => {
   const slipBuffer = req.file.buffer;
   const { price, pay_id } = req.body;
   const expectedAmount = price ? price : 1;
   const db = await pool.connect();
   console.log(slipBuffer);
-
-  console.log('1111111111');
-  
-  
+  console.log("1111111111");
+  console.log(req.body);
 
   try {
+    if (!pay_id )
+      return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
+
     // เช็คว่า ซื้อไปยัง ไม่ให้ซื้อซ้ำ
     const sqlCheck = `SELECT id, status FROM pay WHERE id = $1`;
     const resultCheck = await db.query(sqlCheck, [pay_id]);
@@ -160,35 +159,56 @@ export const updateCheckSlip = async (req, res) => {
         .json({ message: "คุณแจ้งชำระเงินรายการนี้แล้ว !" });
 
 
-    if(!slipBuffer) return res.status(400).json({message : 'ไม่พบสลิป'})
+
+    if (!slipBuffer) return res.status(400).json({ message: "ไม่พบสลิป" });
     // ตรวจสอบสลิป, ยอดเงิน, และบัญชีผ่าน slipOK
     const isValid = await verifySlipAmountAndAccount(
       slipBuffer,
       expectedAmount
     );
 
-    // บันทึกรูปสลิป
-    if (isValid) {
-      const fileName = await uploadImageFile(req.file);
-    // วันที่เริ่มและสิ้นสุดการซื้อ
-    const dateNow = moment().format("YYYY-MM-DD");
-    const nextYearDate = moment().add(1, "year").format("YYYY-MM-DD");
+    console.log(isValid);
 
-      const result = await db.query(
-        "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4 WHERE id = $5 RETURNING status",
-        [1, fileName, dateNow, nextYearDate,  pay_id]
-      );
-     return res.status(200).json({
-        success: true,
-        message: "ซื้อคอร์สเรียนสำเร็จ",
-        pay_status: result.rows[0].status,
-      });
-    } else {
-     return res.status(400).json({
-        success: false,
-        message: "สลิปไม่ถูกต้อง",
-      });
-    }
+    if (!isValid.status )
+      return res
+        .status(400)
+        .json({ success: false, message: "สลิปไม่ถูกต้อง" });
+
+    // check transRef
+    const sqlCheckTransRef = `SELECT id FROM pay WHERE trans_ref = $1`
+    const resultCheckTransRef = await db.query(sqlCheckTransRef, [isValid.transRef])
+    console.log(resultCheckTransRef?.rows[0]?.id);
+
+    if(resultCheckTransRef.rows.length > 0 ) return res.status(400).json({message : 'ใช้สลิปซ้ำ !!!!'})
+
+      console.log('ทำต่อได้');
+      
+
+
+        
+
+    // บันทึกรูปสลิป
+    // if (isValid) {
+    //   const fileName = await uploadImageFile(req.file);
+    // // วันที่เริ่มและสิ้นสุดการซื้อ
+    // const dateNow = moment().format("YYYY-MM-DD");
+    // const nextYearDate = moment().add(1, "year").format("YYYY-MM-DD");
+
+    //   const result = await db.query(
+    //     "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4 WHERE id = $5 RETURNING status",
+    //     [1, fileName, dateNow, nextYearDate,  pay_id]
+    //   );
+    //  return res.status(200).json({
+    //     success: true,
+    //     message: "ซื้อคอร์สเรียนสำเร็จ",
+    //     pay_status: result.rows[0].status,
+    //   });
+    // } else {
+    //  return res.status(400).json({
+    //     success: false,
+    //     message: "สลิปไม่ถูกต้อง",
+    //   });
+    // }
   } catch (error) {
     console.log(error);
     return res.status(500).json(error.message);
@@ -200,7 +220,7 @@ export const updateCheckSlip = async (req, res) => {
 // Users
 export const getPayMyUser = async (req, res) => {
   const { users_id, full, search } = req.body;
-  const db = await pool.connect()
+  const db = await pool.connect();
   try {
     // paginations
     const page = parseInt(req.body.page) || 1;
@@ -211,9 +231,8 @@ export const getPayMyUser = async (req, res) => {
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
     console.log(req.body);
-    
-    
-    let params = [users_id,limit, offset];
+
+    let params = [users_id, limit, offset];
     let conditions = [];
     let paramIndex = 4;
     let sql = `SELECT 
@@ -225,7 +244,6 @@ export const getPayMyUser = async (req, res) => {
     FROM pay 
     LEFT JOIN products ON pay.products_id = products.id
     WHERE pay.users_id = $1 `;
-
 
     if (search) {
       conditions.push(`code LIKE $${paramIndex}`);
@@ -248,13 +266,33 @@ export const getPayMyUser = async (req, res) => {
       totalItems,
       data: result.rows,
     });
-
   } catch (error) {
     console.log(error);
     return res.status(500).json(error.message);
   } finally {
-    db.release()
+    db.release();
   }
 };
 
+export const checkUserPay = async (req, res) => {
+  const { products_id, users_id } = req.body;
+  const db = await pool.connect();
+  console.log(req.body);
 
+  try {
+    const sql = `
+    SELECT id, code, status
+    FROM pay 
+    WHERE  pay.products_id = $1 AND pay.users_id = $2
+    `;
+    const result = await db.query(sql, [products_id, users_id]);
+    console.log(result.rows[0]);
+
+    return res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error.message);
+  } finally {
+    db.release();
+  }
+};
