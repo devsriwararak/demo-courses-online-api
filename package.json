@@ -20,12 +20,15 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
     "nodemon": "^3.1.4",
     "pg": "^8.12.0",
+    "promptpay-qr": "^0.5.0",
+    "qrcode": "^1.5.4",
     "sharp": "^0.33.4",
     "slipok": "^1.0.0"
   }

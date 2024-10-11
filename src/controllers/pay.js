@@ -4,6 +4,19 @@ import slipOk from "slipok";
 import multer from "multer";
 import { verifySlipAmountAndAccount } from "../libs/checkSlip.js";
 import { uploadImageFile } from "../libs/uploadFile.js";
+import QRCode from "qrcode";
+import generatePayload from "promptpay-qr";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from 'dotenv';
+
+// โหลดค่าในไฟล์ .env
+dotenv.config();
+
+// สร้าง path สำหรับไฟล์ SVG
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const upload = multer({ storage: multer.memoryStorage() });
 // upload middleware
@@ -147,8 +160,7 @@ export const updateCheckSlip = async (req, res) => {
   console.log(req.body);
 
   try {
-    if (!pay_id )
-      return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
+    if (!pay_id) return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
 
     // เช็คว่า ซื้อไปยัง ไม่ให้ซื้อซ้ำ
     const sqlCheck = `SELECT id, status FROM pay WHERE id = $1`;
@@ -158,57 +170,54 @@ export const updateCheckSlip = async (req, res) => {
         .status(400)
         .json({ message: "คุณแจ้งชำระเงินรายการนี้แล้ว !" });
 
-
-
     if (!slipBuffer) return res.status(400).json({ message: "ไม่พบสลิป" });
     // ตรวจสอบสลิป, ยอดเงิน, และบัญชีผ่าน slipOK
-    const isValid = await verifySlipAmountAndAccount(
-      slipBuffer,
-      expectedAmount
-    );
+    // const isValid = await verifySlipAmountAndAccount(
+    //   slipBuffer,
+    //   expectedAmount
+    // );
 
-    console.log(isValid);
+    // console.log(isValid);
+    // ข้อมูลสมมุติ
+    const isValid = {
+      status: true,
+      transRef: "014279151200BTF05402",
+    };
 
-    if (!isValid.status )
+    if (!isValid.status)
       return res
         .status(400)
         .json({ success: false, message: "สลิปไม่ถูกต้อง" });
 
     // check transRef
-    const sqlCheckTransRef = `SELECT id FROM pay WHERE trans_ref = $1`
-    const resultCheckTransRef = await db.query(sqlCheckTransRef, [isValid.transRef])
+    const sqlCheckTransRef = `SELECT id FROM pay WHERE trans_ref = $1`;
+    const resultCheckTransRef = await db.query(sqlCheckTransRef, [
+      isValid.transRef,
+    ]);
     console.log(resultCheckTransRef?.rows[0]?.id);
 
-    if(resultCheckTransRef.rows.length > 0 ) return res.status(400).json({message : 'ใช้สลิปซ้ำ !!!!'})
+    if (resultCheckTransRef.rows.length > 0)
+      return res.status(400).json({ message: "ใช้สลิปซ้ำ !!!!" });
 
-      console.log('ทำต่อได้');
-      
-
-
-        
+    console.log("ทำต่อได้");
 
     // บันทึกรูปสลิป
-    // if (isValid) {
-    //   const fileName = await uploadImageFile(req.file);
-    // // วันที่เริ่มและสิ้นสุดการซื้อ
-    // const dateNow = moment().format("YYYY-MM-DD");
-    // const nextYearDate = moment().add(1, "year").format("YYYY-MM-DD");
 
-    //   const result = await db.query(
-    //     "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4 WHERE id = $5 RETURNING status",
-    //     [1, fileName, dateNow, nextYearDate,  pay_id]
-    //   );
-    //  return res.status(200).json({
-    //     success: true,
-    //     message: "ซื้อคอร์สเรียนสำเร็จ",
-    //     pay_status: result.rows[0].status,
-    //   });
-    // } else {
-    //  return res.status(400).json({
-    //     success: false,
-    //     message: "สลิปไม่ถูกต้อง",
-    //   });
-    // }
+    const fileName = await uploadImageFile(req.file);
+    // วันที่เริ่มและสิ้นสุดการซื้อ
+    const dateNow = moment().format("YYYY-MM-DD");
+    const nextYearDate = moment().add(1, "year").format("YYYY-MM-DD");
+
+    const result = await db.query(
+      "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4, trans_ref= $5 WHERE id = $6 RETURNING status",
+      [1, fileName, dateNow, nextYearDate, isValid.transRef, pay_id]
+    );
+    return res.status(200).json({
+      success: true,
+      message: "ซื้อคอร์สเรียนสำเร็จ",
+      pay_status: result.rows[0].status,
+    });
+    
   } catch (error) {
     console.log(error);
     return res.status(500).json(error.message);
@@ -283,7 +292,7 @@ export const checkUserPay = async (req, res) => {
     const sql = `
     SELECT id, code, status
     FROM pay 
-    WHERE  pay.products_id = $1 AND pay.users_id = $2
+    WHERE  pay.products_id = $1 AND pay.users_id = $2 
     `;
     const result = await db.query(sql, [products_id, users_id]);
     console.log(result.rows[0]);
@@ -296,3 +305,35 @@ export const checkUserPay = async (req, res) => {
     db.release();
   }
 };
+
+// หลังจากที่ create qrcode แล้ว ต้องการให้ ดูรูปได้จาก path  http://localhost:5000/qr.svg
+export const createQrCode = async (req, res) => {
+  const { price } = req.body;
+
+  try {
+    const mobileNumber = process.env.PROMPTPAY_CODE;
+    const amount = price || 0;
+    const payload = generatePayload(mobileNumber, { amount });
+    console.log(payload);
+    const svgPath = path.join(__dirname, "../../public/qr.svg");
+
+    const option = { type: "svg", color: { dark: "#000", light: "#fff" } };
+
+    // สร้าง QR Code และบันทึกเป็น SVG
+    QRCode.toFile(svgPath, payload, option, (err) => {
+      if (err) {
+        console.log(err);
+        return res.status(500).json({ error: "ไม่สามารถสร้าง QR Code ได้" });
+      }
+
+      // ส่ง path ของ QR Code กลับ
+     return res.status(200).json({ qrCodePath: "/qr.svg" });
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+

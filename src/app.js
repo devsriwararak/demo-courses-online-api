@@ -1,5 +1,8 @@
 import express from 'express'
 import cors from 'cors'
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 
 // Import Router
 import userRoute from './routes/users.js'
@@ -16,6 +19,7 @@ import ebookRouter from './routes/ebook.js'
 import otpRouter from './routes/otp.js'
 import homePageRouter from './routes/homepage.js'
 
+
 const app = express()
 app.use(cors())
 app.use(express.json({ limit: '50mb' })); // เพิ่ม limit สำหรับ payload
@@ -23,6 +27,14 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req,res)=> {
     res.send('v1ss')
 })
+
+// แปลง URL เป็นเส้นทางไฟล์
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ใช้ express.static เพื่อให้บริการไฟล์ในโฟลเดอร์ 'public'
+app.use(express.static(path.join(__dirname, '../public')));
+
 
 
 // Routers

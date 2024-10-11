@@ -1,6 +1,6 @@
 import express from 'express'
 import { authenticationToken } from '../middleware/auth.js'
-import { checkUserPay, getAllPay, getPayMyUser, payNewCourses, updateCheckSlip, uploadMiddleware } from '../controllers/pay.js'
+import { checkUserPay, createQrCode, getAllPay, getPayMyUser, payNewCourses, updateCheckSlip, uploadMiddleware } from '../controllers/pay.js'
 const router = express.Router()
 
 router.post('/', authenticationToken, getAllPay)
@@ -9,6 +9,9 @@ router.post('/upload_slip', authenticationToken, uploadMiddleware, updateCheckSl
 // User
 router.post('/users', authenticationToken, getPayMyUser)
 router.post('/users/check_pay', authenticationToken, checkUserPay)
+
+// QR Code
+router.post('/users/qr_code/create', authenticationToken, createQrCode )
 
 
 
