@@ -15,6 +15,7 @@ services:
       EMAIL_USER: devsriwararak.work@gmail.com
       EMAIL_PASS: ocbp dcjw vxzr wkbx
       JWT_SECRET: smalldick_bigheart
+      PROMPTPAY_CODE: 085-003-2649
       PORT: 5000
     ports:
       - "5000:5000"
