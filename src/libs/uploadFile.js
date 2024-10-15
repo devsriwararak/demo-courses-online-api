@@ -45,21 +45,28 @@ async function handleVideoUpload(videoFile) {
 }
 
 
-async function uploadImageFile(file) {
-
-  try {
-    const imageBuffer = file.buffer
-    const imageSharp = sharp(imageBuffer);
-    const metadata = await imageSharp.metadata();
-
     // if (metadata.width > 1920 || metadata.height > 1080) {
     //   throw new Error("รูปภาพมีขนาดใหญ่กว่า 1920 * 1080");
     // }
     // const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
     // return imageName
 
+async function uploadImageFile(file, type) {
+
+  try {
+    let imageBuffer = file.buffer
+    const imageSharp = sharp(imageBuffer);
+    const metadata = await imageSharp.metadata();
+    let newName = "image.jpg"
+
+    if(type === "qrcode") {
+      newName = "qrcode_for_scan.png"
+      imageBuffer = file
+    }
+
+    
+  
     if (metadata.width > 1920 || metadata.height > 1080) {
-      // ปรับขนาดรูปภาพให้มีขนาดสูงสุดไม่เกิน 1920x1080
       const resizedImageBuffer = await imageSharp
         .resize({
           width: 1920,
@@ -69,11 +76,10 @@ async function uploadImageFile(file) {
         })
         .toBuffer();
 
-      const imageName = await uploadToFTP(resizedImageBuffer, "image.jpg", "/images");
+      const imageName = await uploadToFTP(resizedImageBuffer, newName, "/images");
       return imageName;
     } else {
-      // ถ้าขนาดรูปภาพไม่เกิน 1920x1080 ก็อัพโหลดตามปกติ
-      const imageName = await uploadToFTP(imageBuffer, "image.jpg", "/images");
+      const imageName = await uploadToFTP(imageBuffer, newName, "/images");
       return imageName;
     }
 

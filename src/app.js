@@ -28,12 +28,12 @@ app.get('/', (req,res)=> {
     res.send('v1ss')
 })
 
-// แปลง URL เป็นเส้นทางไฟล์
+// เกี่ยวกับ code นี้ใน vps ไหม
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ใช้ express.static เพื่อให้บริการไฟล์ในโฟลเดอร์ 'public'
-app.use(express.static(path.join(__dirname, '../public')));
+// app.use(express.static(path.join(__dirname, '../public')));
 
 
 

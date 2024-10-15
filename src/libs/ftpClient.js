@@ -24,10 +24,16 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
       secure: false,
     });
 
-    const fileName = `${crypto.randomBytes(16).toString("hex")}${path.extname(
+    let fileName = `${crypto.randomBytes(16).toString("hex")}${path.extname(
       originalName
     )}`;
 
+    if(originalName === "qrcode_for_scan.png"){
+      fileName = originalName
+    }
+    console.log({fileName});
+    console.log({originalName});
+    
     // สร้าง Readable stream จาก buffer
     const stream = new Readable();
     stream._read = () => {};
@@ -35,7 +41,9 @@ const uploadToFTP = async (fileBuffer, originalName, directory) => {
     stream.push(null);
 
     await client.uploadFrom(stream, `${directory}/${fileName}`);
+
     return fileName;
+
   } catch (error) {
     console.error(error);
     throw error;

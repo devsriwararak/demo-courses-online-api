@@ -3,13 +3,16 @@ import pool from "../db/index.js";
 import slipOk from "slipok";
 import multer from "multer";
 import { verifySlipAmountAndAccount } from "../libs/checkSlip.js";
-import { uploadImageFile } from "../libs/uploadFile.js";
+import handleImageUpload, { uploadImageFile } from "../libs/uploadFile.js";
 import QRCode from "qrcode";
 import generatePayload from "promptpay-qr";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
+import { promisify } from "util";
+import { deleteImageFtp } from "../libs/ftpClient.js";
+import sharp from "sharp";
 
 // โหลดค่าในไฟล์ .env
 dotenv.config();
@@ -217,7 +220,6 @@ export const updateCheckSlip = async (req, res) => {
       message: "ซื้อคอร์สเรียนสำเร็จ",
       pay_status: result.rows[0].status,
     });
-    
   } catch (error) {
     console.log(error);
     return res.status(500).json(error.message);
@@ -306,34 +308,74 @@ export const checkUserPay = async (req, res) => {
   }
 };
 
-// หลังจากที่ create qrcode แล้ว ต้องการให้ ดูรูปได้จาก path  http://localhost:5000/qr.svg
+// สร้าง QR Code และบันทึกเป็น SVG
+// QRCode.toFile(svgPath, payload, option, (err) => {
+//   if (err) {
+//     console.log(err);
+//     return res.status(500).json({ error: "ไม่สามารถสร้าง QR Code ได้" });
+//   }
+
+//   // ส่ง path ของ QR Code กลับ
+//   return res.status(200).json({ qrCodePath: "/qr.svg" });
+// });
+
+// next node express ต้องการให้รูปสร้างเสร็จก่อน ค่อย return 200
+// export const createQrCode = async (req, res) => {
+//   const { price } = req.body;
+//   console.log(req.body);
+//   const toFilePromise = promisify(QRCode.toFile);
+
+//   try {
+//     const mobileNumber = process.env.PROMPTPAY_CODE;
+//     const amount = price || 0;
+//     const payload = generatePayload(mobileNumber, { amount });
+//     // const svgPath = path.join(__dirname, "../../public/qr.svg");
+
+//     // ลบไฟล์ qr.svg เก่าถ้ามีอยู่
+//     // if (fs.existsSync(svgPath)) {
+//     //   fs.unlinkSync(svgPath);
+//     // }
+//     const option = { type: "svg", color: { dark: "#000", light: "#fff" } };
+//     // สร้าง QR Code และบันทึกเป็น SVG
+//     await toFilePromise(svgPath, payload, option);
+
+//     // ส่ง path ของ QR Code กลับ
+//     // return res.status(200).json({ qrCodePath: "/qr.svg" });
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(500).json({ error: error.message });
+//   }
+// };
+
 export const createQrCode = async (req, res) => {
   const { price } = req.body;
+  // console.log(req.body);
+  const toFilePromise = promisify(QRCode.toFile);
 
   try {
     const mobileNumber = process.env.PROMPTPAY_CODE;
     const amount = price || 0;
     const payload = generatePayload(mobileNumber, { amount });
-    console.log(payload);
-    const svgPath = path.join(__dirname, "../../public/qr.svg");
+    const image = "qrcode_for_scan.png";
 
     const option = { type: "svg", color: { dark: "#000", light: "#fff" } };
 
-    // สร้าง QR Code และบันทึกเป็น SVG
-    QRCode.toFile(svgPath, payload, option, (err) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ error: "ไม่สามารถสร้าง QR Code ได้" });
-      }
+    // สร้าง QR Code เป็น buffer
 
-      // ส่ง path ของ QR Code กลับ
-     return res.status(200).json({ qrCodePath: "/qr.svg" });
-    });
+    // Error: การอัพโหลดวีดีโอภาพล้มเหลว: Input buffer contains unsupported image format
+    const qrCodeBuffer = await QRCode.toString(payload, option);
 
+    // แปลง SVG เป็น PNG Buffer
+    const pngBuffer = await sharp(Buffer.from(qrCodeBuffer))
+      .png() // เปลี่ยนเป็น PNG
+      .toBuffer();
+
+    const image_question_check = await uploadImageFile(pngBuffer, "qrcode");
+    console.log({ image_question_check });
+
+    return res.status(200).json({ qrCodePath: image_question_check });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: error.message });
   }
 };
-
-
