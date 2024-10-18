@@ -18,6 +18,7 @@ import activityRouter from './routes/activity.js'
 import ebookRouter from './routes/ebook.js'
 import otpRouter from './routes/otp.js'
 import homePageRouter from './routes/homepage.js'
+import reportRouter from './routes/report.js'
 
 
 const app = express()
@@ -51,5 +52,6 @@ app.use('/api/activity', activityRouter)
 app.use('/api/ebook', ebookRouter)
 app.use('/api/otp' , otpRouter)
 app.use('/api/homepage' , homePageRouter)
+app.use('/api/report',  reportRouter)
 
 export default app

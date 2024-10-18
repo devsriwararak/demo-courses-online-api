@@ -158,12 +158,12 @@ export const updateCheckSlip = async (req, res) => {
   const { price, pay_id } = req.body;
   const expectedAmount = price ? price : 1;
   const db = await pool.connect();
-  console.log(slipBuffer);
-  console.log("1111111111");
-  console.log(req.body);
+  // console.log(slipBuffer);
+  // console.log("1111111111");
+  // console.log(req.body);
 
   try {
-    if (!pay_id) return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
+    if (!pay_id || !price) return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
 
     // เช็คว่า ซื้อไปยัง ไม่ให้ซื้อซ้ำ
     const sqlCheck = `SELECT id, status FROM pay WHERE id = $1`;
@@ -182,9 +182,10 @@ export const updateCheckSlip = async (req, res) => {
 
     // console.log(isValid);
     // ข้อมูลสมมุติ
+
     const isValid = {
       status: true,
-      transRef: "014279151200BTF05402",
+      transRef: "014279151200BTF05404",
     };
 
     if (!isValid.status)
@@ -212,14 +213,15 @@ export const updateCheckSlip = async (req, res) => {
     const nextYearDate = moment().add(1, "year").format("YYYY-MM-DD");
 
     const result = await db.query(
-      "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4, trans_ref= $5 WHERE id = $6 RETURNING status",
-      [1, fileName, dateNow, nextYearDate, isValid.transRef, pay_id]
+      "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4, trans_ref= $5, price = $6 WHERE id = $7 RETURNING status",
+      [1, fileName, dateNow, nextYearDate, isValid.transRef, price, pay_id]
     );
     return res.status(200).json({
       success: true,
       message: "ซื้อคอร์สเรียนสำเร็จ",
       pay_status: result.rows[0].status,
     });
+
   } catch (error) {
     console.log(error);
     return res.status(500).json(error.message);
@@ -248,7 +250,7 @@ export const getPayMyUser = async (req, res) => {
     let paramIndex = 4;
     let sql = `SELECT 
     pay.id as pay_id, code, status , products.title as products_name,
-    products.price as products_price ,
+    pay.price as products_price ,
     TO_CHAR(start_pay, 'DD/MM/YYYY') as start_pay  ,
     TO_CHAR(end_pay, 'DD/MM/YYYY') as end_pay  ,
     pay.image as pay_image
