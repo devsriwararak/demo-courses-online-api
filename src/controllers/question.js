@@ -414,6 +414,7 @@ export const countQuestion = async (req, res) => {
 export const getNewQuestion = async (req, res) => {
   const db = await pool.connect();
   const { full } = req.body;
+  
 
   // paginations
   const page = parseInt(req.body.page) || 1;
@@ -438,7 +439,7 @@ export const getNewQuestion = async (req, res) => {
      products_title_id ,
      products.title as products_title ,
      products_title.title as products_title_name ,
-     new_question.status as status
+     new_question.status as status 
      FROM new_question 
      LEFT JOIN products ON new_question.products_id = products.id
      LEFT JOIN products_title ON new_question.products_title_id = products_title.id
@@ -502,10 +503,14 @@ export const addNewQuestion = async(req,res)=>{
 export const getMyNewQuestion = async(req,res)=> {
   const db = await pool.connect()
   try {
-    const {users_id} = req.params
+    const {users_id, products_title_id} = req.params
+    console.log(req.params);
+    
 
-    const sql = `SELECT id, status, products_id, products_title_id FROM new_question WHERE users_id = $1 `
-    const result = await pool.query(sql, [users_id])
+    
+
+    const sql = `SELECT id, status, products_id, products_title_id FROM new_question WHERE users_id = $1 AND products_title_id = $2 `
+    const result = await pool.query(sql, [users_id, products_title_id])
     return res.status(200).json(result.rows)
   
     
@@ -514,6 +519,30 @@ export const getMyNewQuestion = async(req,res)=> {
     return res.status(500).json(error.message)
     
   } finally {
+    db.release()
+  }
+}
+
+export const deleteNewQuestion = async(req,res)=> {
+  const {id} = req.params
+  const db = await pool.connect()
+  
+  try {
+    // ลบ List
+    const sqlDeleteList = `DELETE FROM question WHERE new_question_id = $1 `
+    await db.query(sqlDeleteList, [id])
+
+    // ลบ Title
+    const sqlDeleteTitle = `DELETE FROM new_question WHERE id = $1 `
+    await db.query(sqlDeleteTitle, [id])
+
+    return res.status(200).json({message: 'ลบสำเร็จ'})
+    
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error)
+    
+  }finally {
     db.release()
   }
 }

@@ -27,8 +27,8 @@ export const getAllCategory = async (req, res) => {
 
     const sql = `SELECT DISTINCT  category.name as category_name , category.id as category_id
             FROM pay 
-            JOIN products ON pay.products_id = products.id
-            JOIN category ON products.category_id = category.id
+            RIGHT JOIN products ON pay.products_id = products.id
+            RIGHT JOIN category ON products.category_id = category.id
             WHERE pay.users_id = $1
             `;
     const result = await db.query(sql, [users_id]);
@@ -60,7 +60,7 @@ export const getMyProduct = async (req, res) => {
     SELECT  products.id as products_id , products.title as products_title , products.dec as products_dec, products.price as products_price, products.price_sale as products_price_sale,
     products.image as products_image
     FROM pay
-    LEFT JOIN products ON pay.products_id = products.id
+    RIGHT JOIN products ON pay.products_id = products.id
     WHERE pay.users_id = $1 AND pay.status = 1
     `;
     const params = [users_id, limit, offset];

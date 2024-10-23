@@ -173,17 +173,63 @@ export const getProductById = async (req, res) => {
 export const deleteProductById = async (req, res) => {
   const { id } = req.params;
   const db = await pool.connect();
+  console.log(id);
+
   try {
-    const sqlCheck = `SELECT image, video FROM products WHERE id = $1`;
+    const sqlCheck = `SELECT id, image FROM products WHERE id = $1`;
     const resultCheck = await db.query(sqlCheck, [id]);
     const data = resultCheck.rows[0];
-    if (!data)
+
+    if (!data.id)
       return res.status(400).json({ message: "ไม่พบข้อมูลที่ต้องการลบ" });
 
-    await deleteImageFtp(`/images/${data.image}`);
-    // await deleteImageFtp(`/videos/${data.video}`);
-    const sql = `DELETE FROM products WHERE id = $1`;
-    await db.query(sql, [id]);
+    const sqlSelectProductsTitle = `SELECT id FROM products_title WHERE products_id = $1 `;
+    const resultawaitProductsTitle = await db.query(sqlSelectProductsTitle, [
+      id,
+    ]);
+
+    if (resultawaitProductsTitle.rows[0].id) {
+      // Check Videos TB products_videos
+      const sqlCheckVideos = `SELECT id, videos FROM products_videos WHERE products_title_id = $1`;
+      const resultCheckVideos = await db.query(sqlCheckVideos, [
+        resultawaitProductsTitle.rows[0].id,
+      ]);
+      // console.log(data.image);
+      
+
+      if (data.image) {
+        await deleteImageFtp(`/images/${data.image}`);
+      }
+
+      for (const item of resultCheckVideos.rows) {
+        // console.log(item.videos);
+        await deleteImageFtp(`/videos/${item.videos}`);
+      }
+
+      // ลบ TB products_videos ลบจาก products_title_id
+      const sqlDeleteProductsVideos = `DELETE FROM products_videos WHERE products_title_id = $1 `;
+      await db.query(sqlDeleteProductsVideos, [
+        resultawaitProductsTitle.rows[0].id,
+      ]);
+    }
+
+    // ลบ TB products_title
+    const sqlDeleteProductsTitle = `DELETE FROM products_title WHERE products_id = $1`;
+    await db.query(sqlDeleteProductsTitle, [id]);
+
+    // ลบ TB new_question
+    const sqlDeleteNewQuestion = `DELETE FROM new_question WHERE products_id = $1`;
+    await db.query(sqlDeleteNewQuestion, [id]);
+
+    // ลบ TB question
+    const sqlDeleteQuestion = `DELETE FROM question WHERE products_id = $1`;
+    await db.query(sqlDeleteQuestion, [id]);
+
+    // ลบ Products
+    const sqlDeleteProducts = `DELETE FROM products WHERE id = $1`;
+    await db.query(sqlDeleteProducts, [id]);
+
+
 
     return res.status(200).json({ message: "ลบสำเร็จ" });
   } catch (error) {
@@ -198,6 +244,8 @@ export const editProductByid = async (req, res) => {
   const { id, title, dec, price, price_sale, image, category_id } = req.body;
   // const videoFile = req.file;
   const db = await pool.connect();
+  console.log(req.body);
+
   try {
     if (!id) return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
 
@@ -212,17 +260,13 @@ export const editProductByid = async (req, res) => {
     const resultOld = await db.query(sqlOld, [id]);
 
     let imageName = resultOld.rows[0].image;
-    // let videoName = resultOld.rows[0].video;
 
-    if (image !== resultOld.rows[0].image) {
-      await deleteImageFtp(`/images/${resultOld.rows[0].image}`); // ลบรูปเก่าก่อน
+    if (image !== imageName) {
+      await deleteImageFtp(`/images/${imageName}`); // ลบรูปเก่าก่อน
       imageName = await handleImageUpload(image); // upload รูปใหม่ base64
     }
 
-    // if (videoFile) {
-    //   await deleteImageFtp(`/videos/${resultOld.rows[0].video}`); // ลบวีดีโอเก่าก่อน
-    //   videoName = await handleVideoUpload(videoFile);
-    // }
+    console.log(imageName);
 
     // บันทึกลง SQL
     const sql = `UPDATE products SET title = $1, dec = $2, price = $3, price_sale = $4, image = $5,  category_id = $6 WHERE id = $7`;
