@@ -13,7 +13,7 @@ export const checkCoursesTimeOut = async (req, res, next) => {
     //ให้ update status เป็น 0 ทันที ถ้าหมดอายุ
     if (expiredCourses.rows.length > 0) {
       console.log("พบคอร์ส หมดอายุ");
-      const sqlUpdate = `UPDATE pay SET status = 0 WHERE id = $1`;
+      const sqlUpdate = `UPDATE pay SET status = 2 WHERE id = $1`;
 
       for (const course of expiredCourses.rows) {
         await db.query(sqlUpdate, [course.id]);

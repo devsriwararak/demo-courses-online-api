@@ -293,10 +293,13 @@ export const checkUserPay = async (req, res) => {
   console.log(req.body);
 
   try {
+
+    // check status 2
+
     const sql = `
     SELECT id, code, status
     FROM pay 
-    WHERE  pay.products_id = $1 AND pay.users_id = $2 
+    WHERE  pay.products_id = $1 AND pay.users_id = $2  AND pay.status != 2
     `;
     const result = await db.query(sql, [products_id, users_id]);
     console.log(result.rows[0]);
