@@ -175,20 +175,20 @@ export const updateCheckSlip = async (req, res) => {
 
     if (!slipBuffer) return res.status(400).json({ message: "ไม่พบสลิป" });
     // ตรวจสอบสลิป, ยอดเงิน, และบัญชีผ่าน slipOK
-    // const isValid = await verifySlipAmountAndAccount(
-    //   slipBuffer,
-    //   expectedAmount
-    // );
+    const isValid = await verifySlipAmountAndAccount(
+      slipBuffer,
+      expectedAmount
+    );
 
-    // console.log(isValid);
+    console.log(isValid);
     // ข้อมูลสมมุติ
 
-    const isValid = {
-      status: true,
-      transRef: "014279151200BTF05404",
-    };
+    // const isValid = {
+    //   status: true,
+    //   transRef: "014279151200BTF05404",
+    // };
 
-    if (!isValid.status)
+    if (isValid.status === false)
       return res
         .status(400)
         .json({ success: false, message: "สลิปไม่ถูกต้อง" });
@@ -373,7 +373,6 @@ export const createQrCode = async (req, res) => {
       .toBuffer();
 
     const image_question_check = await uploadImageFile(pngBuffer, "qrcode");
-    console.log({ image_question_check });
 
     return res.status(200).json({ qrCodePath: image_question_check });
   } catch (error) {
