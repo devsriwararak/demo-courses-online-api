@@ -19,11 +19,12 @@ import ebookRouter from './routes/ebook.js'
 import otpRouter from './routes/otp.js'
 import homePageRouter from './routes/homepage.js'
 import reportRouter from './routes/report.js'
+import logoutRouter from './routes/logout.js'
 
 
 const app = express()
 app.use(cors())
-app.use(express.json({ limit: '50mb' })); // เพิ่ม limit สำหรับ payload
+app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ extended: true }));
 app.get('/', (req,res)=> {
     res.send('v1ss')
@@ -53,5 +54,6 @@ app.use('/api/ebook', ebookRouter)
 app.use('/api/otp' , otpRouter)
 app.use('/api/homepage' , homePageRouter)
 app.use('/api/report',  reportRouter)
+app.use('/api/logout',  logoutRouter)
 
 export default app

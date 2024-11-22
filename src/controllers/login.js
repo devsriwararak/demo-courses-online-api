@@ -2,12 +2,15 @@ import pool from "../db/index.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { checkLoginToken } from "../libs/checkLoginToken.js";
 dotenv.config();
 
 const jwtSecret = process.env.JWT_SECRET;
 
 export const loginUser = async (req, res) => {
   const { username, password } = req.body;
+  console.log(req.body);
+  
   const db = await pool.connect();
   try {
     if (!username || !password) {
@@ -28,13 +31,30 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "รหัสผ่านไม่ถูกต้อง" });
     }
 
+    // ต้องการเช็คว่า ถ้า token หมดอายุแล้ว ให้ Update Status เป็น 0 
+    const checkStatus =  await checkLoginToken(user.id)
+    console.log({checkStatus});
+    
+    
+    // เช็ค Status Login มีคนใช้งานอยู่
+    const sqlCheckStatusLogin = `SELECT id FROM users  WHERE status_login = 1 AND id = $1 `
+    const resultCheckStatusLogin = await db.query(sqlCheckStatusLogin, [user.id])
+    if(resultCheckStatusLogin.rows.length > 0) return res.status(400).json({message : 'มีผู้ใช้งานเข้าสู่ระบบอยู่แล้ว'})
+
     // OK
     const token = jwt.sign(
       { id: user.id, username: user.username, status: user.status },
       jwtSecret,
       { expiresIn: "1d" }
     );
+
+    // Update Status Login
+    const sqlUpdateStatusLogin = `UPDATE users SET status_login = $1, token = $2 WHERE id = $3`
+    await db.query(sqlUpdateStatusLogin, [1, token, user.id ])
+
     return res.status(200).json({ message: "เข้าสู่ระบบสำเร็จ", token });
+
+
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message);

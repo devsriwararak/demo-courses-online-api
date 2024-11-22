@@ -96,6 +96,7 @@ export const getNewCoursesById = async (req, res) => {
             products.dec as product_dec, 
             products.price as products_price,
             products.price_sale as products_price_sale,
+            products.youtube as products_youtube,
             category.name as category_name,
             JSON_AGG(
                 JSON_BUILD_OBJECT(

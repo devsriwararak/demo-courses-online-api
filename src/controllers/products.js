@@ -14,9 +14,11 @@ export const uploadMiddleware = upload.single("video");
 
 // add corses
 export const addNewProduct = async (req, res) => {
-  const { title, dec, price, price_sale, image, category_id } = req.body;
+  const { title, dec, price, price_sale, image, category_id, youtube } = req.body;
   // const videoFile = req.file;
   const db = await pool.connect();
+  console.log(req.body);
+  
   try {
     // เช็คข้อมูลซ้ำ
     const sqlCheck = `SELECT id FROM products WHERE title = $1`;
@@ -36,8 +38,8 @@ export const addNewProduct = async (req, res) => {
 
     // บันทึกข้อมูลลงฐานข้อมูล
     const result = await db.query(
-      "INSERT INTO products (title, dec, price, price_sale, image, category_id) VALUES ($1, $2, $3, $4, $5,$6) RETURNING id ",
-      [title, dec, price, price_sale, imageName, category_id]
+      "INSERT INTO products (title, dec, price, price_sale, image, category_id, youtube) VALUES ($1, $2, $3, $4, $5,$6, $7) RETURNING id ",
+      [title, dec, price, price_sale, imageName, category_id, youtube]
     );
 
     return res
@@ -46,7 +48,10 @@ export const addNewProduct = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message);
-  } finally {
+  }
+  
+  
+  finally {
     db.release();
   }
 };
@@ -68,7 +73,7 @@ export const getAllProducts = async (req, res) => {
     const totalItems = parseInt(resultPage.rows[0].count);
     const totalPages = Math.ceil(totalItems / limit);
 
-    let sql = `SELECT products.id, title, dec, price, price_sale,image, video, category.id as category_id  ,  category.name as category_name
+    let sql = `SELECT products.id, title, dec, price, price_sale,image, video, youtube ,  category.id as category_id  ,  category.name as category_name
     FROM products
      LEFT JOIN category ON products.category_id = category.id
     `;
@@ -141,6 +146,7 @@ export const getProductById = async (req, res) => {
         products.dec as product_dec, 
         products.price as products_price,
         products.price_sale as products_price_sale,
+        products.youtube as products_youtube,
         category.name as category_name,
         JSON_AGG(
             JSON_BUILD_OBJECT(
@@ -241,7 +247,7 @@ export const deleteProductById = async (req, res) => {
 };
 
 export const editProductByid = async (req, res) => {
-  const { id, title, dec, price, price_sale, image, category_id } = req.body;
+  const { id, title, dec, price, price_sale, image, category_id, youtube } = req.body;
   // const videoFile = req.file;
   const db = await pool.connect();
   console.log(req.body);
@@ -269,7 +275,7 @@ export const editProductByid = async (req, res) => {
     console.log(imageName);
 
     // บันทึกลง SQL
-    const sql = `UPDATE products SET title = $1, dec = $2, price = $3, price_sale = $4, image = $5,  category_id = $6 WHERE id = $7`;
+    const sql = `UPDATE products SET title = $1, dec = $2, price = $3, price_sale = $4, image = $5,  category_id = $6, youtube = $7 WHERE id = $8`;
     await db.query(sql, [
       title,
       dec,
@@ -277,6 +283,7 @@ export const editProductByid = async (req, res) => {
       price_sale,
       imageName,
       category_id,
+      youtube,
       id,
     ]);
     return res.status(200).json({ message: "แก้ไขสำเร็จ" });
