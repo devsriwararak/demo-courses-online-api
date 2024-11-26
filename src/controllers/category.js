@@ -23,9 +23,13 @@ export const getAllCategory = async (req, res) => {
       params.push(`%${search}%`);
     }
 
-    sql += ` LIMIT $1 OFFSET $2`;
+    sql += ` ORDER BY id DESC LIMIT $1 OFFSET $2 `;
 
     const result = await db.query(sql, params);
+    console.log({result:result.rows});
+    console.log({page});
+    
+    
     return res.status(200).json({
       page,
       limit,

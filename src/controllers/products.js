@@ -14,11 +14,12 @@ export const uploadMiddleware = upload.single("video");
 
 // add corses
 export const addNewProduct = async (req, res) => {
-  const { title, dec, price, price_sale, image, category_id, youtube } = req.body;
+  const { title, dec, price, price_sale, image, category_id, youtube } =
+    req.body;
   // const videoFile = req.file;
   const db = await pool.connect();
   console.log(req.body);
-  
+
   try {
     // เช็คข้อมูลซ้ำ
     const sqlCheck = `SELECT id FROM products WHERE title = $1`;
@@ -48,10 +49,7 @@ export const addNewProduct = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json(error.message);
-  }
-  
-  
-  finally {
+  } finally {
     db.release();
   }
 };
@@ -104,7 +102,7 @@ export const getAllProducts = async (req, res) => {
     //   params.push(`%${search}%`, category_id );
     // }
 
-    sql += ` LIMIT $1 OFFSET $2`;
+    sql += ` ORDER BY products.id DESC  LIMIT $1 OFFSET $2`;
 
     const result = await db.query(sql, params);
     // console.log(result.rows);
@@ -201,7 +199,6 @@ export const deleteProductById = async (req, res) => {
         resultawaitProductsTitle.rows[0].id,
       ]);
       // console.log(data.image);
-      
 
       if (data.image) {
         await deleteImageFtp(`/images/${data.image}`);
@@ -235,8 +232,6 @@ export const deleteProductById = async (req, res) => {
     const sqlDeleteProducts = `DELETE FROM products WHERE id = $1`;
     await db.query(sqlDeleteProducts, [id]);
 
-
-
     return res.status(200).json({ message: "ลบสำเร็จ" });
   } catch (error) {
     console.error(error);
@@ -247,10 +242,11 @@ export const deleteProductById = async (req, res) => {
 };
 
 export const editProductByid = async (req, res) => {
-  const { id, title, dec, price, price_sale, image, category_id, youtube } = req.body;
+  const { id, title, dec, price, price_sale, image, category_id, youtube } =
+    req.body;
   // const videoFile = req.file;
   const db = await pool.connect();
-  console.log(req.body);
+  // console.log(req.body);
 
   try {
     if (!id) return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
@@ -268,8 +264,13 @@ export const editProductByid = async (req, res) => {
     let imageName = resultOld.rows[0].image;
 
     if (image !== imageName) {
-      await deleteImageFtp(`/images/${imageName}`); // ลบรูปเก่าก่อน
-      imageName = await handleImageUpload(image); // upload รูปใหม่ base64
+      const test = await deleteImageFtp(`/images/${imageName}`); // ลบรูปเก่าก่อน
+      if (test) {
+        imageName = await handleImageUpload(image); // upload รูปใหม่ base64
+      } else {
+        imageName = await handleImageUpload(image); // upload รูปใหม่ base64
+      }
+
     }
 
     console.log(imageName);

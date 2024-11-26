@@ -69,10 +69,13 @@ export const deleteImageFtp = async (imagePath) => {
 
     await client.remove(imagePath);
     console.log(`Deleted ${imagePath} successfully`);
+    return true
   } catch (error) {
     console.error(`Error deleting file from FTP: ${error.message}`);
-    throw new Error(`Delete failed: ${error.message}`);
-  } finally {
+    return false
+  } 
+  
+  finally {
     client.close();
   }
 };

@@ -34,8 +34,6 @@ export const authenticationToken = async (req, res, next) => {
     console.log({resultCheck: resultCheck.rows});
     
     if(!resultCheck.rows.length) return res.status(400).json({message : 'Token ไม่ตรงกับระบบ'})
-
-        console.log('test000');
         
 
     jwt.verify(token, jwtSecret, (err, user) => {

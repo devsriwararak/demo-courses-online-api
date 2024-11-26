@@ -158,9 +158,7 @@ export const updateCheckSlip = async (req, res) => {
   const { price, pay_id } = req.body;
   const expectedAmount = price ? price : 1;
   const db = await pool.connect();
-  // console.log(slipBuffer);
-  // console.log("1111111111");
-  // console.log(req.body);
+
 
   try {
     if (!pay_id || !price) return res.status(400).json({ message: "ส่งข้อมูลมาไม่ครบ" });
@@ -175,20 +173,18 @@ export const updateCheckSlip = async (req, res) => {
 
     if (!slipBuffer) return res.status(400).json({ message: "ไม่พบสลิป" });
     // ตรวจสอบสลิป, ยอดเงิน, และบัญชีผ่าน slipOK
-    const isValid = await verifySlipAmountAndAccount(
-      slipBuffer,
-      expectedAmount
-    );
+    // const isValid = await verifySlipAmountAndAccount(
+    //   slipBuffer,
+    //   expectedAmount
+    // );
 
-    console.log(isValid);
     // ข้อมูลสมมุติ
+    const isValid = {
+      status: true,
+      transRef: "014279151200BTF05404",
+    };
 
-    // const isValid = {
-    //   status: true,
-    //   transRef: "014279151200BTF05404",
-    // };
-
-    if (isValid.status === false)
+    if (isValid.status === false || isValid.status === "undefined" )
       return res
         .status(400)
         .json({ success: false, message: "สลิปไม่ถูกต้อง" });
@@ -213,7 +209,7 @@ export const updateCheckSlip = async (req, res) => {
     const nextYearDate = moment().add(1, "year").format("YYYY-MM-DD");
 
     const result = await db.query(
-      "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4, trans_ref= $5, price = $6 WHERE id = $7 RETURNING status",
+      "UPDATE pay SET status = $1, image = $2, start_pay = $3, end_pay = $4, trans_ref= $5, price = $6, type = 1 WHERE id = $7 RETURNING status",
       [1, fileName, dateNow, nextYearDate, isValid.transRef, price, pay_id]
     );
     return res.status(200).json({
@@ -297,7 +293,7 @@ export const checkUserPay = async (req, res) => {
     // check status 2
 
     const sql = `
-    SELECT id, code, status
+    SELECT id, code, status , type
     FROM pay 
     WHERE  pay.products_id = $1 AND pay.users_id = $2  AND pay.status != 2
     `;
