@@ -49,7 +49,8 @@ export const getAllPay = async (req, res) => {
     products.title ,
     products.price ,
     products.price_sale , 
-    pay.image
+    pay.image ,
+    pay.type
 
     FROM pay
     LEFT JOIN users ON users.id = pay.users_id
@@ -133,8 +134,8 @@ export const payNewCourses = async (req, res) => {
     // บันทึกบิลใหม่
 
     const resultInsert = await db.query(
-      "INSERT INTO pay (code, users_id, products_id) VALUES ($1, $2, $3) RETURNING status,id",
-      [newBillNumber, users_id, product_id]
+      "INSERT INTO pay (code, users_id, products_id, type) VALUES ($1, $2, $3, $4) RETURNING status,id",
+      [newBillNumber, users_id, product_id, 1]
     );
 
     return res.status(200).json({
@@ -293,7 +294,14 @@ export const checkUserPay = async (req, res) => {
     // check status 2
 
     const sql = `
-    SELECT id, code, status , type
+    SELECT 
+    id, 
+    code, 
+    status , 
+    type , 
+    TO_CHAR(pay.start_pay , 'DD-MM-YYYY') as start_pay , 
+    TO_CHAR(pay.end_pay , 'DD-MM-YYYY') as end_pay, 
+    price
     FROM pay 
     WHERE  pay.products_id = $1 AND pay.users_id = $2  AND pay.status != 2
     `;

@@ -7,10 +7,10 @@ dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const creditCardCheckout = async (req, res) => {
-  const { users_id, product } = req.body;
+  const { users_id, product , code } = req.body;
   const db = await pool.connect();
 
-  // Query หาบิลล่าสุดที่ตรงกับปีปัจจุบัน
+  // Query หาบิลล่าสุดที่ตรงกับปีปัจจุบัน ***************************************************
   const currentYear = new Date().getFullYear();
   const result = await db.query(
     "SELECT code FROM pay WHERE code LIKE $1 ORDER BY id DESC LIMIT 1",
@@ -28,6 +28,7 @@ export const creditCardCheckout = async (req, res) => {
     const newNumber = (lastNumber + 1).toString().padStart(5, "0"); // ใช้ 5 หลัก
     newBillNumber = `N${currentYear}-${newNumber}`; // เช่น N2024-0002
   }
+ 
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -46,13 +47,11 @@ export const creditCardCheckout = async (req, res) => {
       ],
       mode: "payment",
       success_url: `${process.env.REDIRECT_TO_FRONTEND}/user/payment/success?id=${newBillNumber}`,
-      cancel_url: `http://localhost:5173/payment/cancel`,
+      cancel_url: `${process.env.REDIRECT_TO_FRONTEND}/user/payment/cancel`,
     });
 
     console.log({ session });
 
-    // ตรวจสอบว่าผู้ใช้เคยซื้อหรือไม่
-    //ถ้าเคยซื้อเช็คว่า คอร์สหมดอายุยัง
 
     const oderData = {
       code: newBillNumber,
@@ -62,6 +61,11 @@ export const creditCardCheckout = async (req, res) => {
       users_id,
       products_id: product.id,
     };
+
+    if(code){
+      
+      await db.query('UPDATE pay SET status = 2 WHERE code = $1', [code])
+    }
 
     const sqlInsert = ` INSERT INTO pay (code, session_id, status , type, price, users_id, products_id) VALUES ($1, $2, $3 , $4, $5, $6, $7) RETURNING * `;
     const resultInsert = await db.query(sqlInsert, [
@@ -99,3 +103,5 @@ export const creditCardCheckOrderByid = async (req, res) => {
     db.release();
   }
 };
+
+
